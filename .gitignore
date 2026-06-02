@@ -1,0 +1,7 @@
+# Local plugin settings (per-project, user-specific)
+.claude/*.local.md
+
+# OS / editor cruft
+.DS_Store
+*.log
+node_modules/

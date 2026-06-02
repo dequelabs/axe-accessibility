@@ -1,0 +1,14 @@
+{
+  "name": "axe-mcp",
+  "version": "0.1.0",
+  "description": "Onboard and use Deque's axe MCP Server effectively: wire up the server, generate accessibility agent instructions, and run an analyze -> remediate -> verify loop until violations hit zero.",
+  "author": {
+    "name": "Deque Systems",
+    "email": "harris.schneiderman@deque.com",
+    "url": "https://www.deque.com"
+  },
+  "homepage": "https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server",
+  "repository": "https://github.com/dequelabs/axe-mcp-plugin",
+  "license": "MIT",
+  "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp", "remediation"]
+}
