@@ -26,18 +26,32 @@ This plugin focuses on the axe MCP Server's `analyze` and `remediate` tools and 
 
 ## Installation
 
-Install from a marketplace that lists this plugin:
+Run locally for development:
+
+```
+claude --plugin-dir /path/to/axe-mcp-plugin
+```
+
+Install from the Deque-hosted marketplace (this repo doubles as one):
 
 ```
 /plugin marketplace add dequelabs/axe-mcp-plugin
 /plugin install axe-mcp
 ```
 
-Or run locally for development:
+Once accepted into Anthropic's community marketplace, users can also:
 
 ```
-claude --plugin-dir /path/to/axe-mcp-plugin
+/plugin marketplace add anthropics/claude-plugins-community
+/plugin install axe-mcp@claude-community
 ```
+
+## Publishing
+
+Two distribution paths, not mutually exclusive:
+
+1. **Self-hosted marketplace** — push this repo under `dequelabs`; `.claude-plugin/marketplace.json` makes it installable immediately via `/plugin marketplace add`.
+2. **Anthropic community marketplace** — run `claude plugin validate .` (the review pipeline runs the same check plus automated safety screening), then submit at [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit) or [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit). Approved plugins are pinned by commit SHA in `anthropics/claude-plugins-community` and synced nightly. The curated `claude-plugins-official` marketplace is selected by Anthropic at its discretion (no application).
 
 ## Quick start
 
