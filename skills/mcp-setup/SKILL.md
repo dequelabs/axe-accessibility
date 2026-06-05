@@ -9,7 +9,7 @@ allowed-tools: AskUserQuestion, Bash, Read, Edit, Write
 
 Guide the user from nothing to a working, authenticated axe MCP Server connection. Drive the flow with `AskUserQuestion` for the decisions below, then write the correct configuration for their client and verify it.
 
-Prerequisites to confirm early: **Docker installed and running** (default distro), and an **active axe subscription** that includes axe MCP Server. If `$1` names a client, skip the client question.
+Prerequisites to confirm early: **Docker installed and running**, and an **active axe subscription** that includes axe MCP Server. If `$1` names a client, skip the client question.
 
 ## Step 1 — Choose authentication
 
@@ -62,4 +62,4 @@ Once connected, recommend:
 
 ## Additional resources
 
-- **`references/client-configs.md`** — per-client config snippets (Docker + npm, API key + OAuth) and troubleshooting.
+- **`references/client-configs.md`** — per-client Docker config snippets (API key + OAuth) and troubleshooting.

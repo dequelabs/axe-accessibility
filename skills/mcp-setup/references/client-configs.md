@@ -1,6 +1,6 @@
 # Client configuration snippets
 
-Pick the block matching the **client**, then the **auth method**. Docker is the primary distro (`dequesystems/axe-mcp-server:latest`); an npm alternative is shown at the end.
+Pick the block matching the **client**, then the **auth method**. The server runs as the public Docker image `dequesystems/axe-mcp-server:latest` (anonymously pullable — no `docker login` required).
 
 In every snippet the server is named `axe-mcp-server`, which is also the tool prefix (e.g. `mcp__axe-mcp-server__analyze`).
 
@@ -92,20 +92,6 @@ Edit `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/
 ```
 
 Provide credentials via the `env` object here since Desktop does not inherit a shell environment, e.g. add `"env": { "AXE_API_KEY": "..." }` to the server entry. Restart Claude Desktop.
-
-## npm distro alternative (no Docker)
-
-Replace the Docker invocation with the npm CLI. API-key example:
-
-```json
-{
-  "command": "npx",
-  "args": ["-y", "axe-mcp-server"],
-  "env": { "AXE_API_KEY": "${AXE_API_KEY}" }
-}
-```
-
-For OAuth with the npm distro, set `AXE_ACCESS_TOKEN` via the same `sh -c` token-minting wrapper, swapping the `docker run ...` for `npx -y axe-mcp-server`. Confirm the published npm package name against the current docs if `npx` cannot resolve it.
 
 ## Troubleshooting
 
