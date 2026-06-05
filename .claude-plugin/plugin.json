@@ -1,7 +1,7 @@
 {
   "name": "axe-accessibility",
   "version": "0.1.0",
-  "description": "Deque's accessibility toolkit for coding agents. Set up Deque's axe tooling and teach your agent to build, test, and remediate UI that meets accessibility standards. Currently powers the axe MCP Server analyze -> remediate -> verify workflow; expanding over time.",
+  "description": "Deque's accessibility toolkit for coding agents. Get accessible, standards-conformant UI effortlessly - your agent builds, tests, and remediates accessibility in the loop, so it's never a separate, manual chore. Currently powers the axe MCP Server analyze -> remediate -> verify workflow; expanding over time.",
   "author": {
     "name": "Deque Systems",
     "email": "harris.schneiderman@deque.com",
