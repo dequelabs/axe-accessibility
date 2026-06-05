@@ -6,6 +6,8 @@ In every snippet the server is named `axe-mcp-server`, which is also the tool pr
 
 ## The two auth shapes
 
+> **Mutual exclusivity:** the server **fails at startup if both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set**. Every shape below passes exactly one credential — never both.
+
 **API key (Docker):** a plain `docker run` that forwards `AXE_API_KEY` from the environment.
 
 ```json
@@ -15,16 +17,23 @@ In every snippet the server is named `axe-mcp-server`, which is also the tool pr
 }
 ```
 
-**OAuth (Docker):** wrap in `sh -c` so a fresh access token is minted at each start.
+**OAuth (Docker):** wrap in `sh -c` so a fresh access token is minted at each start. Passes only `AXE_ACCESS_TOKEN`.
 
 ```json
 {
   "command": "sh",
-  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; exec docker run -i --rm -e AXE_API_KEY -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
+  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; exec docker run -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
 }
 ```
 
-**Auth-agnostic (recommended, ships with the plugin):** the OAuth shape also works for API-key users — if no OAuth session exists, the token command yields nothing and the server falls back to `AXE_API_KEY`. Use the OAuth shape when a single config must serve both.
+**Auth-agnostic (recommended, ships with the plugin):** one config that serves both. It mints an OAuth token; if a session exists it passes only `AXE_ACCESS_TOKEN`, otherwise only `AXE_API_KEY` — never both, so the mutual-exclusivity rule holds. OAuth takes precedence when both are available.
+
+```json
+{
+  "command": "sh",
+  "args": ["-c", "T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
+}
+```
 
 Set `AXE_API_KEY` and/or `AXE_SERVER_URL` in the environment that launches the client, not in committed files.
 

@@ -66,7 +66,7 @@ Two mechanisms are supported; choose during `/axe-accessibility:mcp-setup`:
 - **API key** — create one at the [axe Account Portal](https://axe.deque.com) (API Keys → "axe MCP Server" product), then export `AXE_API_KEY`.
 - **OAuth 2.0** — `npx -y @deque/axe-auth login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).
 
-The bundled `.mcp.json` is **auth-agnostic**: it mints an OAuth access token on demand and also forwards `AXE_API_KEY`, so whichever credential is present is used. Set `AXE_SERVER_URL` for private cloud / on-prem deployments.
+The bundled `.mcp.json` is **auth-agnostic**: it mints an OAuth token and passes **exactly one** credential — the OAuth `AXE_ACCESS_TOKEN` if you're logged in, otherwise `AXE_API_KEY`. (The server rejects having both set, so the config never passes both.) Set `AXE_SERVER_URL` for private cloud / on-prem deployments.
 
 > **Note:** Each `remediate` call consumes AI credits from your organization's allocation. `analyze` does not, so re-verifying is cheap.
 

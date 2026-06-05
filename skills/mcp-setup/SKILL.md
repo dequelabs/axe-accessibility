@@ -18,6 +18,8 @@ Ask which method to use (`AskUserQuestion`):
 - **API key** — simplest. A static `AXE_API_KEY`. Best for CI, shared machines, or users who want no extra CLI.
 - **OAuth 2.0** — browser login via the `@deque/axe-auth` CLI, tokens stored in the OS keychain with automatic refresh. Best for individual developers.
 
+> **Only one credential at a time.** The server fails at startup if both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set. Configure exactly one; the bundled config enforces this automatically (OAuth token if present, else API key).
+
 ### API key path
 
 1. Direct the user to create a key: **axe Account Portal (https://axe.deque.com) -> API Keys -> ADD NEW API KEY -> product "axe MCP Server"**, then copy it.
@@ -32,7 +34,7 @@ Ask which method to use (`AskUserQuestion`):
 
 Ask which client to configure (or use `$1`): Claude Code, Cursor, VS Code (Copilot), Claude Desktop, or generic/other.
 
-The plugin already ships an **auth-agnostic** `.mcp.json` (see plugin root) that works for Claude Code out of the box: it passes both `AXE_API_KEY` and an OAuth `AXE_ACCESS_TOKEN` (minted on demand) so whichever credential is present is used. For Claude Code, installing the plugin is usually enough — confirm the server appears and skip to verification.
+The plugin already ships an **auth-agnostic** `.mcp.json` (see plugin root) that works for Claude Code out of the box: it mints an OAuth token and passes **exactly one** credential — `AXE_ACCESS_TOKEN` if an OAuth session exists, otherwise `AXE_API_KEY` (never both, since the server fails when both are set). For Claude Code, installing the plugin is usually enough — confirm the server appears and skip to verification.
 
 For all other clients, emit the correct configuration snippet. Read `references/client-configs.md` and produce the snippet matching the chosen client **and** auth method, then either write it to the client's config file (with the user's confirmation) or print it for them to paste.
 
