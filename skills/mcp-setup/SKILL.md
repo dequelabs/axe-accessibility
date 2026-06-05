@@ -9,7 +9,7 @@ allowed-tools: AskUserQuestion, Bash, Read, Edit, Write
 
 Guide the user from nothing to a working, authenticated axe MCP Server connection. Drive the flow with `AskUserQuestion` for the decisions below, then write the correct configuration for their client and verify it.
 
-Prerequisites to confirm early: **Docker installed and running**, and an **active axe subscription** that includes axe MCP Server. If `$1` names a client, skip the client question.
+Prerequisites to confirm early: **Docker installed and running**, and an **axe DevTools for Web** subscription whose Bundle plan includes axe MCP Server access (pricing: https://www.deque.com/axe/devtools/pricing/). If the user lacks the subscription, the tools will fail to authenticate — point them to the pricing page. If `$1` names a client, skip the client question.
 
 ## Step 1 — Choose authentication
 

@@ -21,7 +21,7 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
 ## Prerequisites
 
 - **Docker** installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
-- An **active axe subscription** that includes axe MCP Server.
+- An **[axe DevTools for Web](https://www.deque.com/axe/devtools/pricing/)** subscription — the Bundle plan includes axe MCP Server access. Without it, the `analyze`/`remediate` tools will fail to authenticate.
 - For **OAuth**: Node.js 22 LTS+ (the bundled config calls `npx @deque/axe-auth`).
 
 ## Installation
