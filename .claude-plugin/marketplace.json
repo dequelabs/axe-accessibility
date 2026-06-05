@@ -11,9 +11,9 @@
     {
       "name": "axe-accessibility",
       "source": "./",
-      "description": "Axe Accessibility: onboard and use Deque's axe MCP Server - set up the server, generate accessibility agent instructions, and run an analyze -> remediate -> verify loop.",
+      "description": "Deque's accessibility toolkit for coding agents. Set up Deque's axe tooling and teach your agent to build, test, and remediate UI that meets accessibility standards. Currently powers the axe MCP Server analyze -> remediate -> verify workflow; expanding over time.",
       "version": "0.1.0",
-      "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp"]
+      "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp", "remediation"]
     }
   ]
 }
