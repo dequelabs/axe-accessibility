@@ -12,10 +12,10 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
 
 | Component | Type | What it does |
 |---|---|---|
-| `axe-mcp-usage` | Skill (auto) | Background knowledge so any agent calls `analyze`/`remediate` correctly (field mapping, credit awareness, the workflow). Loads automatically on accessibility tasks. |
-| `/axe-accessibility:setup` | Skill (command) | Interactive setup: pick auth (API key or OAuth), configure your client, verify the connection. |
-| `/axe-accessibility:generate-instructions` | Skill (command) | Generate/merge agent-instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor rules, `AGENTS.md`) that enforce the workflow. |
-| `/axe-accessibility:audit` | Skill (command) | Drive the loop on a URL: analyze → remediate → apply → re-verify until 0 violations or a round cap. |
+| `mcp-usage` | Skill (auto) | Background knowledge so any agent calls `analyze`/`remediate` correctly (field mapping, credit awareness, the workflow). Loads automatically on accessibility tasks. |
+| `/axe-accessibility:mcp-setup` | Skill (command) | Interactive setup: pick auth (API key or OAuth), configure your client, verify the connection. |
+| `/axe-accessibility:mcp-generate-instructions` | Skill (command) | Generate/merge agent-instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor rules, `AGENTS.md`) that enforce the workflow. |
+| `/axe-accessibility:mcp-audit` | Skill (command) | Drive the loop on a URL: analyze → remediate → apply → re-verify until 0 violations or a round cap. |
 | `.mcp.json` | MCP server | Ships an auth-agnostic axe MCP Server entry (Docker) that works with either API key or OAuth. |
 
 ## Prerequisites
@@ -55,13 +55,13 @@ Two distribution paths, not mutually exclusive:
 
 ## Quick start
 
-1. `/axe-accessibility:setup` — choose API key or OAuth and connect the server. Verify with `/mcp`.
-2. `/axe-accessibility:generate-instructions all` — bake the workflow into your repo's agent instructions.
-3. `/axe-accessibility:audit http://localhost:3000` — analyze, remediate, and verify until clean.
+1. `/axe-accessibility:mcp-setup` — choose API key or OAuth and connect the server. Verify with `/mcp`.
+2. `/axe-accessibility:mcp-generate-instructions all` — bake the workflow into your repo's agent instructions.
+3. `/axe-accessibility:mcp-audit http://localhost:3000` — analyze, remediate, and verify until clean.
 
 ## Authentication
 
-Two mechanisms are supported; choose during `/axe-accessibility:setup`:
+Two mechanisms are supported; choose during `/axe-accessibility:mcp-setup`:
 
 - **API key** — create one at the [axe Account Portal](https://axe.deque.com) (API Keys → "axe MCP Server" product), then export `AXE_API_KEY`.
 - **OAuth 2.0** — `npx -y @deque/axe-auth login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).

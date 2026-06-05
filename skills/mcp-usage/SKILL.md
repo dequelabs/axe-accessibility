@@ -1,5 +1,5 @@
 ---
-name: axe-mcp-usage
+name: mcp-usage
 description: This skill should be used whenever the axe MCP Server tools (analyze, remediate) are available and the task involves accessibility, a11y, WCAG conformance, or "fix accessibility issues" on web UI. It teaches the correct analyze -> remediate -> verify workflow, the exact field mapping between the two tools, and credit-aware usage. Trigger phrases include "check accessibility", "scan for a11y issues", "fix accessibility violations", "make this accessible", "axe scan".
 ---
 
@@ -53,4 +53,4 @@ Some rules need judgment beyond the generic fix guidance. The most important is 
 - **`references/field-mapping.md`** — full analyze-issue shape and a complete analyze -> remediate -> apply example.
 - **`references/rule-tips.md`** — per-rule remediation nuances.
 
-To set up the server, generate agent instructions, or run the loop automatically, use the companion skills: `/axe-accessibility:setup`, `/axe-accessibility:generate-instructions`, and `/axe-accessibility:audit`.
+To set up the server, generate agent instructions, or run the loop automatically, use the companion skills: `/axe-accessibility:mcp-setup`, `/axe-accessibility:mcp-generate-instructions`, and `/axe-accessibility:mcp-audit`.

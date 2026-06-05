@@ -1,13 +1,13 @@
 ---
-name: audit
-description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", or runs /axe-accessibility:audit. It drives the axe MCP analyze -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit.
+name: mcp-audit
+description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", or runs /axe-accessibility:mcp-audit. It drives the axe MCP analyze -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit.
 argument-hint: "<url> [max-rounds] (default url: detected localhost, default rounds: 5)"
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
 # Run the accessibility audit loop
 
-Take a page from "has violations" to "zero violations" by iterating the axe MCP workflow and applying real code fixes each round. This skill assumes the axe MCP Server is already connected (`/axe-accessibility:setup`) and the `analyze` and `remediate` tools are available.
+Take a page from "has violations" to "zero violations" by iterating the axe MCP workflow and applying real code fixes each round. This skill assumes the axe MCP Server is already connected (`/axe-accessibility:mcp-setup`) and the `analyze` and `remediate` tools are available.
 
 ## Inputs
 
@@ -27,7 +27,7 @@ Repeat until zero violations or the round cap:
    - `elementHtml` = issue `source`
    - `remediation` = issue `description` + " " + `helpText`
    Deduplicate first — if the same `rule` + `source` appears many times, remediate it once and apply the fix to the shared source (each `remediate` call costs credits).
-3. **Apply fixes to source.** Locate the responsible code (use Grep/Glob to find the component rendering the element) and apply the remediation guidance. Fix the root cause in shared components rather than per-instance when a violation repeats. Apply image-alt and other judgment-heavy rules per the conventions in the `axe-mcp-usage` skill's `references/rule-tips.md`.
+3. **Apply fixes to source.** Locate the responsible code (use Grep/Glob to find the component rendering the element) and apply the remediation guidance. Fix the root cause in shared components rather than per-instance when a violation repeats. Apply image-alt and other judgment-heavy rules per the conventions in the `mcp-usage` skill's `references/rule-tips.md`.
 4. **Re-analyze (verify).** Re-run `analyze` on the same URL. If zero, stop and report success. Otherwise continue to the next round with the remaining issues.
 
 Track issue counts per round so progress is visible (e.g. `round 1: 7 -> round 2: 2 -> round 3: 0`).
@@ -44,4 +44,4 @@ Track issue counts per round so progress is visible (e.g. `round 1: 7 -> round 2
 - Re-running `analyze` is cheap (no remediation credits); re-running `remediate` for an already-fixed element wastes credits — only remediate violations present in the latest analyze pass.
 - After the loop, briefly summarize the code changes made so the user can review them before committing.
 
-For field-mapping details and rule-specific remediation nuances, the `axe-mcp-usage` skill's references apply directly.
+For field-mapping details and rule-specific remediation nuances, the `mcp-usage` skill's references apply directly.
