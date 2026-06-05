@@ -1,13 +1,13 @@
 ---
 name: audit
-description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", or runs /axe-mcp:audit. It drives the axe MCP analyze -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit.
+description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", or runs /axe-accessibility:audit. It drives the axe MCP analyze -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit.
 argument-hint: "<url> [max-rounds] (default url: detected localhost, default rounds: 5)"
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
 # Run the accessibility audit loop
 
-Take a page from "has violations" to "zero violations" by iterating the axe MCP workflow and applying real code fixes each round. This skill assumes the axe MCP Server is already connected (`/axe-mcp:setup`) and the `analyze` and `remediate` tools are available.
+Take a page from "has violations" to "zero violations" by iterating the axe MCP workflow and applying real code fixes each round. This skill assumes the axe MCP Server is already connected (`/axe-accessibility:setup`) and the `analyze` and `remediate` tools are available.
 
 ## Inputs
 

@@ -1,6 +1,6 @@
 ---
 name: setup
-description: This skill should be used when the user asks to "set up axe MCP", "configure the axe MCP server", "install axe accessibility tooling", "connect axe MCP", "authenticate axe", or runs /axe-mcp:setup. It interactively wires the axe MCP Server into the user's IDE/MCP client, helps choose and configure authentication (API key or OAuth), and verifies the connection.
+description: This skill should be used when the user asks to "set up axe MCP", "configure the axe MCP server", "install axe accessibility tooling", "connect axe MCP", "authenticate axe", or runs /axe-accessibility:setup. It interactively wires the axe MCP Server into the user's IDE/MCP client, helps choose and configure authentication (API key or OAuth), and verifies the connection.
 argument-hint: "[client] (optional: claude-code | cursor | vscode | claude-desktop)"
 allowed-tools: AskUserQuestion, Bash, Read, Edit, Write
 ---
@@ -55,8 +55,8 @@ If verification fails, consult the troubleshooting section of `references/client
 
 Once connected, recommend:
 
-- `/axe-mcp:generate-instructions` to bake the analyze -> remediate -> verify workflow into the repo's agent instructions.
-- `/axe-mcp:audit <url>` to run the full remediation loop on a page.
+- `/axe-accessibility:generate-instructions` to bake the analyze -> remediate -> verify workflow into the repo's agent instructions.
+- `/axe-accessibility:audit <url>` to run the full remediation loop on a page.
 
 ## Additional resources
 

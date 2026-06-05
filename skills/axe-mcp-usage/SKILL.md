@@ -53,4 +53,4 @@ Some rules need judgment beyond the generic fix guidance. The most important is 
 - **`references/field-mapping.md`** — full analyze-issue shape and a complete analyze -> remediate -> apply example.
 - **`references/rule-tips.md`** — per-rule remediation nuances.
 
-To set up the server, generate agent instructions, or run the loop automatically, use the companion skills: `/axe-mcp:setup`, `/axe-mcp:generate-instructions`, and `/axe-mcp:audit`.
+To set up the server, generate agent instructions, or run the loop automatically, use the companion skills: `/axe-accessibility:setup`, `/axe-accessibility:generate-instructions`, and `/axe-accessibility:audit`.

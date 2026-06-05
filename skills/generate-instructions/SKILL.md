@@ -1,6 +1,6 @@
 ---
 name: generate-instructions
-description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-mcp:generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the axe MCP analyze -> remediate -> verify workflow.
+description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-accessibility:generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the axe MCP analyze -> remediate -> verify workflow.
 argument-hint: "[targets] (optional: claude | copilot | cursor | agents | all)"
 allowed-tools: AskUserQuestion, Bash, Glob, Read, Edit, Write
 ---
@@ -48,8 +48,8 @@ Inspect the repo to make the instructions concrete:
 Summarize which files were written/updated and remind the user that:
 
 - The instructions only take effect for agents that read them (Copilot reads `.github/copilot-instructions.md`, Claude Code reads `CLAUDE.md`, etc.).
-- The axe MCP Server must be connected (`/axe-mcp:setup`) for the workflow to function.
-- `/axe-mcp:audit <url>` runs the same loop on demand.
+- The axe MCP Server must be connected (`/axe-accessibility:setup`) for the workflow to function.
+- `/axe-accessibility:audit <url>` runs the same loop on demand.
 
 ## Additional resources
 

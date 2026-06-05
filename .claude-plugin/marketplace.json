@@ -1,17 +1,17 @@
 {
-  "name": "deque-axe",
+  "name": "deque",
   "owner": {
     "name": "Deque Systems",
     "url": "https://www.deque.com"
   },
   "metadata": {
-    "description": "Deque's accessibility toolkit for coding agents — plugins for using the axe MCP Server to build and ship accessible UI."
+    "description": "Deque's accessibility toolkit for coding agents - plugins for building and shipping accessible UI, powered by axe."
   },
   "plugins": [
     {
-      "name": "axe-mcp",
+      "name": "axe-accessibility",
       "source": "./",
-      "description": "Onboard and use Deque's axe MCP Server effectively: set up the server, generate accessibility agent instructions, and run an analyze -> remediate -> verify loop.",
+      "description": "Axe Accessibility: onboard and use Deque's axe MCP Server - set up the server, generate accessibility agent instructions, and run an analyze -> remediate -> verify loop.",
       "version": "0.1.0",
       "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp"]
     }
