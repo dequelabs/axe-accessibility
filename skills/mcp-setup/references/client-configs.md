@@ -8,12 +8,14 @@ In every snippet the server is named `axe-mcp-server`, which is also the tool pr
 
 > **Mutual exclusivity:** the server **fails at startup if both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set**. Every shape below passes exactly one credential — never both.
 
+> **`--add-host` is required, not optional.** Every `docker run` below passes `--add-host=host.docker.internal:host-gateway`. The server rewrites `localhost` / `127.0.0.1` URLs to `host.docker.internal` so it can reach a dev server on the host from inside the container. Docker Desktop (macOS, Windows) provides that hostname on its own, but Linux does not — without the flag, scanning a local dev server fails with `Failed to resolve an IP address for "host.docker.internal"`. The flag is harmless where the hostname already resolves, so keep it in every config.
+
 **API key (Docker):** a plain `docker run` that forwards `AXE_API_KEY` from the environment.
 
 ```json
 {
   "command": "docker",
-  "args": ["run", "-i", "--rm", "-e", "AXE_API_KEY", "-e", "AXE_SERVER_URL", "dequesystems/axe-mcp-server:latest"]
+  "args": ["run", "--add-host=host.docker.internal:host-gateway", "-i", "--rm", "-e", "AXE_API_KEY", "-e", "AXE_SERVER_URL", "dequesystems/axe-mcp-server:latest"]
 }
 ```
 
@@ -22,7 +24,7 @@ In every snippet the server is named `axe-mcp-server`, which is also the tool pr
 ```json
 {
   "command": "sh",
-  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; exec docker run -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
+  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
 }
 ```
 
@@ -31,7 +33,7 @@ In every snippet the server is named `axe-mcp-server`, which is also the tool pr
 ```json
 {
   "command": "sh",
-  "args": ["-c", "T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
+  "args": ["-c", "T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
 }
 ```
 
@@ -96,6 +98,8 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 ## Troubleshooting
 
 - **Server not listed / won't connect:** ensure Docker Desktop is running and the image is pulled (`docker pull dequesystems/axe-mcp-server:latest`).
+- **`Failed to resolve an IP address for "host.docker.internal"`:** the `docker run` args are missing `--add-host=host.docker.internal:host-gateway`. Add it (most common on Linux) and restart the server.
+- **`net::ERR_CONNECTION_REFUSED` scanning a local dev server:** the dev server is bound only to `127.0.0.1` and is unreachable from the container. Restart it listening on all interfaces, e.g. `npm run dev -- --host=0.0.0.0`.
 - **401 / auth errors:** confirm `AXE_API_KEY` is exported in the client's launch environment, or that `npx -y @deque/axe-auth token` prints a token (re-run `login` if not).
 - **OAuth token empty:** Node 22 LTS+ is required; re-run `npx -y @deque/axe-auth login`.
 - **Private cloud:** set `AXE_SERVER_URL` and pass `--server <url>` to `login`.
