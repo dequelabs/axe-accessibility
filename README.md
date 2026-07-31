@@ -17,13 +17,13 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
 | `/axe-accessibility:mcp-setup` | Skill (command) | Interactive setup: pick distribution (npm or Docker) and auth (API key or OAuth), configure your client, verify the connection. |
 | `/axe-accessibility:mcp-generate-instructions` | Skill (command) | Generate/merge agent-instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor rules, `AGENTS.md`) that enforce the workflow. |
 | `/axe-accessibility:mcp-audit` | Skill (command) | Drive the loop on a URL: analyze → batched remediate → apply → re-verify until 0 violations or a round cap, plus an optional keyboard pass. |
-| `.mcp.json` | MCP server | Ships a distribution- and auth-agnostic Axe MCP Server entry (npm) that works with either API key or OAuth. |
+| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
 
 ## Prerequisites
 
 - An **[Axe DevTools for Web](https://www.deque.com/axe/devtools/pricing/)** subscription — the Bundle plan includes Axe MCP Server access. Without it, the tools will fail to authenticate.
 - **One runtime**, depending on distribution:
-  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time `npx playwright install chromium`. The bundled config runs `npx -y axe-mcp-server`, which does **not** download a browser for you — without Chromium, scans fail with `Chromium is not installed` and the exact command to run.
+  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time `npx playwright install chromium`. The bundled config runs `npx -y axe-mcp-server`, which does **not** download a browser for you. Skip the install and every scan fails with `Chromium is not installed`; the error names the exact command to run, pinned to the Playwright version the server expects.
   - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config calls `npx @deque/axe-auth`).
 

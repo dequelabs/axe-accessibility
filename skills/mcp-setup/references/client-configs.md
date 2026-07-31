@@ -9,7 +9,9 @@ Two independent choices: **distribution** (npm or Docker) and **auth** (API key 
 
 ---
 
-## The four auth shapes
+## The six distribution × auth shapes
+
+Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 
 ### 1. npm + API key (simplest)
 
@@ -33,16 +35,18 @@ Two independent choices: **distribution** (npm or Docker) and **auth** (API key 
 ```
 
 > **The `unset` is required, not defensive.** The npm distribution inherits the entire shell environment. If the user has `AXE_API_KEY` exported (very common) *and* an OAuth session, both variables reach the server and it refuses to start. Docker does not have this problem because credentials arrive only via explicit `-e` flags.
+>
+> The same reasoning runs the other way, which is why shape 3 opens with `unset AXE_ACCESS_TOKEN`: a stale `AXE_ACCESS_TOKEN` exported in the shell would otherwise survive alongside `AXE_API_KEY` whenever no OAuth session is available, producing the identical both-credentials startup failure. Any npm wrapper must clear whichever variable it is not deliberately setting.
 
-### 3. npm, distribution- and auth-agnostic (recommended — ships with the plugin)
+### 3. npm, auth-agnostic (recommended — ships with the plugin)
 
-Serves both auth methods with one config. If an OAuth session exists it passes only `AXE_ACCESS_TOKEN`; otherwise it leaves the inherited `AXE_API_KEY` in place.
+Serves both auth methods with one config — **npm only**; Docker needs shape 6. It clears any inherited `AXE_ACCESS_TOKEN` first, then passes only a freshly minted `AXE_ACCESS_TOKEN` if an OAuth session exists, otherwise leaves the inherited `AXE_API_KEY` in place.
 
 ```json
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server"]
+  "args": ["-c", "unset AXE_ACCESS_TOKEN; T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server"]
 }
 ```
 

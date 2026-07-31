@@ -50,7 +50,7 @@ Ask which method to use (`AskUserQuestion`):
 
 Ask which client to configure (or use `$1`): Claude Code, Cursor, VS Code (Copilot), Claude Desktop, or generic/other.
 
-The plugin already ships a **distribution- and auth-agnostic** `.mcp.json` (see plugin root): it uses the **npm** distribution, mints an OAuth token, and passes **exactly one** credential — `AXE_ACCESS_TOKEN` if an OAuth session exists (unsetting `AXE_API_KEY`), otherwise whatever `AXE_API_KEY` is in the environment. For Claude Code users who chose npm, installing the plugin is usually enough — confirm the server appears and skip to verification.
+The plugin already ships an **auth-agnostic** `.mcp.json` (see plugin root) built on the **npm** distribution — it is not distribution-agnostic, so a user who chose Docker still needs a config from `references/client-configs.md`. It clears any inherited `AXE_ACCESS_TOKEN`, mints a fresh one, and passes **exactly one** credential: `AXE_ACCESS_TOKEN` if an OAuth session exists (unsetting `AXE_API_KEY`), otherwise whatever `AXE_API_KEY` is in the environment. For Claude Code users who chose npm, installing the plugin is usually enough — confirm the server appears and skip to verification.
 
 For every other combination, emit the correct configuration snippet. Read `references/client-configs.md` and produce the snippet matching the chosen **client + distribution + auth method**, then either write it to the client's config file (with the user's confirmation) or print it for them to paste.
 
