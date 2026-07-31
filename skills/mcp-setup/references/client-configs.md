@@ -140,6 +140,8 @@ Edit `.vscode/mcp.json` (workspace) — note VS Code nests servers under a `serv
 
 Reload the window; confirm the tools appear in Copilot's tool picker.
 
+VS Code caches MCP tool schemas aggressively. After any change that alters the advertised schema — an entitlement or feature flag being enabled, or a server upgrade — **quit and relaunch VS Code entirely**; "Restart Server" respawns the process but can keep serving the cached tool definitions.
+
 ## Claude Desktop
 
 Edit `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`):
@@ -164,6 +166,7 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 - **Server exits immediately at startup:** most often both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set. Under npm this happens silently via inherited environment — see the `unset` note above.
 - **OAuth token expired:** since 1.4.0 the error tells you what to do — re-authenticate with `npx -y @deque/axe-auth login` and restart the MCP server connection.
 - **Long sessions:** if calls start failing after hours, restart the MCP server connection to force a token refresh.
+- **A newly enabled feature doesn't show up (e.g. `analyze` has no `advancedRules` parameter after Advanced Rules were turned on):** the server resolves feature flags **once at startup**, before it accepts a connection, and never emits `tools/list_changed`. So the advertised schema is fixed for the life of the process, and clients cache it on top of that. **Fully quit and relaunch the client** — in VS Code, "Restart Server" alone is not enough; a complete quit and relaunch is. Then start a new chat session, since the tool list handed to the model can be cached per session. Verify with `LOG_LEVEL=debug` and look for the `Fetched feature flags` line in the client's MCP output.
 - **`Selector did not match any element on the page`:** an `analyze`/`igt` `selector` matched nothing, which fails the whole scan. Confirm the selector exists (or omit it) rather than guessing.
 - **Result too large for the client:** real pages produce big payloads (~85KB from `analyze`, several hundred KB from `igt`). Scope with `selector`, or read the spilled result file and extract only the fields needed.
 - **Private cloud:** set `AXE_SERVER_URL` and pass `--server <url>` to `login`.
