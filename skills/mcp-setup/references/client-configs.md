@@ -2,7 +2,7 @@
 
 Two independent choices: **distribution** (npm or Docker) and **auth** (API key or OAuth). Pick the shape, then drop it into the client block below. In every snippet the server is named `axe-mcp-server`, which is also the tool prefix (e.g. `mcp__axe-mcp-server__analyze`).
 
-- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist). Requires Node >= 22.19.0 and a one-time `npx playwright install chromium` — the server does not download a browser itself.
+- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist). Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
 - **Docker:** public image `dequesystems/axe-mcp-server:latest` (anonymously pullable — no `docker login` required).
 
 > **Mutual exclusivity:** the server **fails at startup if both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set**. Every shape below passes exactly one credential — never both.
@@ -178,7 +178,7 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 ### npm only
 
 - **Server won't start:** check `node --version` >= 22.19.0.
-- **`Chromium is not installed. Run npx playwright@<version> install chromium`:** the npm distribution does **not** download a browser automatically — this is the most common first-run failure. Run the exact command from the error message (it pins the Playwright version the server expects), then retry. Docs: https://docs.deque.com/devtools-server/4.0.0/en/troubleshooting-chromium
+- **`Chromium is not installed. Run npx playwright@<version> install chromium`:** the npm distribution does **not** download a browser automatically. Run that message's command **verbatim** — the version it names is the running server's actual Playwright pin, which beats any version computed earlier. A bare `npx playwright install chromium` is not a substitute: it resolves to Playwright's latest and can install a Chromium revision the server rejects, so an unpinned install can leave you with this same error. Docs: https://docs.deque.com/devtools-server/4.0.0/en/troubleshooting-chromium
 - **Other browser launch failures:** to use an existing binary instead of the Playwright-managed one, set `AXE_CHROME_PATH` to a **Chrome for Testing** or other Chromium-compatible binary — branded Google Chrome stable 137+ is not supported.
 - **`AXE_CHROME_PATH` rejected on Windows:** fixed in 1.4.0 (the path is now validated by existence rather than by a `--version` exit code). Upgrade if a valid path crashes startup.
 

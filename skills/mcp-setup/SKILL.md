@@ -15,12 +15,20 @@ The one universal prerequisite is an **Axe DevTools for Web** subscription whose
 
 Ask which to use (`AskUserQuestion`). **Recommend npm for local development** — it is the default the plugin ships.
 
-- **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server`. Requires **Node.js >= 22.19.0** and a one-time Chromium install (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs. Auto-updates on each start.
+- **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to the server's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs. Auto-updates on each start.
 - **Docker** — runs as a container from `dequesystems/axe-mcp-server:latest`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server, and re-pulling to pick up new versions.
 
 Verify the chosen prerequisite before writing config:
 
-- npm: `node --version` (must be >= 22.19.0), then install the browser with `npx playwright install chromium`. **The server does not download it for you** — this is the most common first-run failure, surfacing as `Chromium is not installed. Run npx playwright@<version> install chromium`. If that error appears later, run the pinned command from the message verbatim, since it names the Playwright version the server expects.
+- npm: `node --version` (must be >= 22.19.0), then install the browser. **The server does not download it for you**, and skipping this is the most common first-run failure.
+
+  **Pin Playwright to the version the server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Resolve the pin first, then install:
+
+  ```sh
+  npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
+  ```
+
+  Do not hardcode a version into the user's setup notes — the server auto-updates on each start under npm, so a fixed pin drifts silently. If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
 > **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.

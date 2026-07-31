@@ -23,7 +23,15 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
 
 - An **[Axe DevTools for Web](https://www.deque.com/axe/devtools/pricing/)** subscription — the Bundle plan includes Axe MCP Server access. Without it, the tools will fail to authenticate.
 - **One runtime**, depending on distribution:
-  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time `npx playwright install chromium`. The bundled config runs `npx -y axe-mcp-server`, which does **not** download a browser for you. Skip the install and every scan fails with `Chromium is not installed`; the error names the exact command to run, pinned to the Playwright version the server expects.
+  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time Chromium install. The bundled config runs `npx -y axe-mcp-server`, which does **not** download a browser for you — skip this and every scan fails with `Chromium is not installed`.
+
+    **Pin Playwright to the version the server ships**, since a bare `npx playwright install chromium` resolves to Playwright's latest and can install a Chromium revision the server doesn't support:
+
+    ```sh
+    npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
+    ```
+
+    Deriving the version keeps this correct as the server updates (npm auto-updates on each start, so a hardcoded pin drifts silently). See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server/choosing-a-distribution) for the authoritative pin and Linux system-library notes.
   - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config calls `npx @deque/axe-auth`).
 
@@ -35,7 +43,7 @@ The plugin defaults to **npm**, which is the lower-friction path for local devel
 |---|---|---|
 | Command | `npx -y axe-mcp-server` | `docker run … dequesystems/axe-mcp-server:latest` |
 | Requires | Node >= 22.19.0 | Docker daemon running |
-| Browser | one-time `npx playwright install chromium` | bundled in the image |
+| Browser | one-time Chromium install, Playwright pinned to the server's version | bundled in the image |
 | Reaching `localhost` | direct | needs `--add-host=host.docker.internal:host-gateway`, and a dev server bound to `0.0.0.0` |
 | Updates | automatic per start | re-pull the image |
 | `AXE_CHROME_PATH` | supported | **fails at startup** |
