@@ -87,7 +87,7 @@ See `references/field-mapping.md` for the full issue shape and a worked batched 
 
 Beyond the remediation fields, each issue carries flags that should change how you treat it:
 
-- **`isAdvanced`** — the finding came from **Advanced Rules** (screenshots + computer vision + LLMs), not deterministic axe-core. These catch things axe-core cannot (pseudo-headings, unhelpful alt text, some contrast cases) but are **probabilistic**: verify an advanced finding against the actual UI before changing code, and it is legitimate to conclude one is a false positive.
+- **`isAdvanced`** — the finding came from **Advanced Rules** (screenshots + computer vision + LLMs), not deterministic axe-core. These catch things axe-core cannot (pseudo-headings, unhelpful alt text, some contrast cases) but are **probabilistic**: verify an advanced finding against the actual UI before changing code, and it is legitimate to conclude one is a false positive. Their `rule` IDs are namespaced with an **`advanced/`** prefix (e.g. `advanced/text-contrast`, `advanced/css-focus-visible`), so you can spot them by rule ID as well as by the flag. Otherwise they carry exactly the same fields as axe-core issues, so the `remediate` mapping is unchanged.
 - **`isNeedsReview`** — needs human judgment; `impact` may be null with the estimate in `potentialImpact`.
 - **`isBestPractice`** — not a WCAG failure. Fix when cheap; never block on it unless explicitly requested.
 - `impact`, `selector` (an array — an iframe/shadow path, not a CSS string), `tags` (WCAG/EN-301-549/RGAA mappings), `helpUrl`.

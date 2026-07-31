@@ -42,9 +42,12 @@ These come from the keyboard IGT, not axe-core, and their rule IDs are IGT-speci
 
 Advanced Rules use screenshots, computer vision, and LLMs, so these findings are probabilistic and often about *quality* rather than a binary conformance failure. Verify each against the rendered UI before changing code.
 
+Their rule IDs carry an **`advanced/`** prefix, so they are identifiable by rule ID as well as by `isAdvanced`. Field shape is identical to an axe-core issue.
+
+- **`advanced/text-contrast`** — contrast cases axe-core cannot compute, e.g. text over a gradient, image, or video background. Fix the design (solid backing, scrim, token change) rather than nudging a single hex value until a checker passes.
+- **`advanced/css-focus-visible`** — a control's focus indicator is hidden by CSS. Same fix discipline as the keyboard IGT's `focus-indicator-missing`: restore a visible `:focus-visible` style meeting 3:1 contrast, and look for a global `outline: none` reset as the root cause rather than patching one component. These two findings often co-occur — remediate the shared cause once rather than both reports separately.
 - **Pseudo-headings** — text styled to look like a heading but marked up as a `<p>`/`<div>`/`<span>`. The fix is real heading markup at the correct level, not `role="heading"` bolted on, and not restyling the text to look less heading-like.
 - **Unhelpful alt text** — the image has *an* `alt`, so axe-core passes, but the text is uninformative (`"image"`, `"photo"`, a filename, or duplicated adjacent text). Apply the image-alt conventions above; this is the finding those conventions exist for.
-- **Text contrast** — cases axe-core cannot compute, e.g. text over a gradient, image, or video background. Fix the design (solid backing, scrim, token change) rather than nudging a single hex value until a checker passes.
 
 If a finding is genuinely wrong for your UI, say so and move on — do not contort the code to satisfy it. Persistent noise is a signal to pass `advancedRules: "precise"` on the next scan, or `"disabled"` for a purely deterministic one. Both are per-scan, so no restart is needed; `AXE_ADVANCED_RULES` sets the default when you want it to stick across every scan.
 
