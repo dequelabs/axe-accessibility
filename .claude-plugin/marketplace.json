@@ -5,14 +5,14 @@
     "url": "https://www.deque.com"
   },
   "metadata": {
-    "description": "Deque's accessibility toolkit for coding agents - plugins for building and shipping accessible UI, powered by axe."
+    "description": "Deque's accessibility toolkit for coding agents - plugins for building and shipping accessible UI, powered by Axe."
   },
   "plugins": [
     {
       "name": "axe-accessibility",
       "source": "./",
-      "description": "Deque's accessibility toolkit for coding agents. Get accessible UI effortlessly - your agent builds, tests, and remediates accessibility in the loop, so it's never a separate, manual chore. Currently powers the axe MCP Server analyze -> remediate -> verify workflow; expanding over time.",
-      "version": "0.1.0",
+      "description": "Deque's accessibility toolkit for coding agents. Get accessible UI effortlessly - your agent builds, tests, and remediates accessibility in the loop, so it's never a separate, manual chore. Currently powers the Axe MCP Server scan -> remediate -> verify workflow, including keyboard guided tests; expanding over time.",
+      "version": "0.2.0",
       "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp", "remediation"]
     }
   ]
