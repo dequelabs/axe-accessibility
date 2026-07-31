@@ -12,7 +12,9 @@ All shapes below are the actual wire format of Axe MCP Server 1.4.0.
 }
 ```
 
-`advancedRules` reports the **resolved** preset and where it came from — the per-scan `advancedRules` parameter if you passed one, else the server's `AXE_ADVANCED_RULES`, else the organization default. `{"value": "disabled", "source": "unavailable"}` means Advanced Rules are not entitled on the account — the scan was axe-core only and contains no `isAdvanced` findings.
+`advancedRules` reports the **resolved** preset and which input won. `source` is one of `tool_arg`, `env_var`, `org_default`, `org_policy_locked` (fixed org policy rejected your override), `tier_locked` (free tier — cannot be enabled), or `unavailable` (not enabled for this caller, or the entitlement lookup failed). Precedence is parameter > `AXE_ADVANCED_RULES` > org policy, except a fixed policy and the free-tier gate override everything. A `value` of `disabled` with `tier_locked`/`unavailable` means the scan was axe-core only and contains no `isAdvanced` findings — a licensing state, not a clean page.
+
+Note that on accounts where Advanced Rules are not enabled, the server also **removes `advancedRules` from `analyze`'s published input schema**, so the parameter is absent from the tool definition and passing it is ignored without error.
 
 When `analyze` is called with `screenshot: { format: "png" | "jpeg" }`, the response also carries an **MCP image content block** beside this JSON. The image shows the viewport immediately before `axe.run()` started, so on SPAs it can disagree with what axe actually scanned — treat it as context, not evidence about which elements were tested.
 

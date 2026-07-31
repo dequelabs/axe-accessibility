@@ -94,7 +94,20 @@ Beyond the remediation fields, each issue carries flags that should change how y
 
 **Deterministic vs. probabilistic:** axe-core findings (`isAdvanced: false`) are deterministic and tuned for zero false positives — treat them as authoritative and never hand-author or contradict them. Advanced findings are AI-derived and are strong signals, not verdicts. This distinction matters when a "zero violations" goal will not converge: an advanced finding you have genuinely assessed as a false positive should be reported and set aside, not fixed by contorting the code.
 
-The response's `advancedRules` block reports the resolved setting, e.g. `{ "value": "balanced", "source": "org_default" }`. If it reads `{ "value": "disabled", "source": "unavailable" }`, the organization is not entitled to Advanced Rules (or the entitlement lookup failed) — the scan ran axe-core only, so **no `isAdvanced` findings will appear at all**. Check this block before concluding a page has no advanced findings. The preset comes from the `advancedRules` parameter when you pass one, otherwise the server's `AXE_ADVANCED_RULES` default, otherwise the organization's setting — and `source` tells you which applied.
+Every response carries an `advancedRules` block reporting what was actually applied and why — `{ value, source }`. **Read `source` before concluding anything about advanced findings**, because several values mean "none will ever appear":
+
+| `source` | meaning |
+|---|---|
+| `tool_arg` | your `advancedRules` parameter won |
+| `env_var` | the server's `AXE_ADVANCED_RULES` won |
+| `org_default` | the organization's configured policy applied |
+| `org_policy_locked` | org policy is fixed; your override was **rejected** — the policy value applied instead |
+| `tier_locked` | free tier; Advanced Rules cannot be enabled by any means |
+| `unavailable` | not enabled for this caller, or the entitlement lookup failed |
+
+Precedence is: `advancedRules` parameter > `AXE_ADVANCED_RULES` > org policy — except that a **fixed** org policy beats any override, and the free-tier gate beats everything.
+
+So `{ "value": "disabled", "source": "unavailable" }` or `"tier_locked"` means the scan ran axe-core only and contains **no `isAdvanced` findings at all**. That absence is a licensing state, not a clean bill of health. And `"org_policy_locked"` means your requested preset did not take effect — worth surfacing rather than assuming it did.
 
 ## Scoping and setup parameters on `analyze`
 
@@ -103,10 +116,12 @@ The response's `advancedRules` block reports the resolved setting, e.g. `{ "valu
 - **`before`** — `click` / `fill` / `waitFor` steps that run **after** navigation, to log in or reach a view. Available on `igt` too.
 - **`viewportWidth` / `viewportHeight`** — default is **1000×1080**. Set both explicitly to test responsive breakpoints (e.g. 375×812 for mobile); contrast and target-size results genuinely differ by viewport.
 - **`screenshot`** — an **object**, not a boolean: `{ format: "png" | "jpeg" }` (default `png`). Returns the viewport as an MCP image content block alongside the report. Request it **deliberately, not on every scan** — images are expensive in tokens. Capture is best-effort and never fails a scan; if it times out, the results still return with a note.
-- **`advancedRules`** — per-scan confidence preset: `"precise"` (highest confidence, fewest findings), `"balanced"`, `"thorough"` (lowest confidence, most findings), or `"disabled"` for a purely deterministic axe-core scan. Overrides the server's `AXE_ADVANCED_RULES` default for this scan only.
+- **`advancedRules`** — per-scan confidence preset: `"precise"` (90%, fewest findings), `"balanced"` (70%), `"thorough"` (50%, most findings), or `"disabled"` for a purely deterministic axe-core scan. The percentage strings `"90%"` / `"70%"` / `"50%"` are accepted as aliases, and input is trimmed and lowercased. An unrecognized value is a validation error, not a silent fallback. Takes precedence over the server's `AXE_ADVANCED_RULES`.
 - **`chromePath`** — npm distribution only; overrides `AXE_CHROME_PATH`. Rejected under Docker.
 
-**Pass `advancedRules` when the user asks for it.** A request like "run a11y analysis with thorough advanced rules" or "scan with advanced rules disabled" maps directly onto this parameter. Note that it may not appear in the tool's advertised JSON schema, so you will not necessarily discover it by inspecting the tool — it is accepted regardless. Confirm it took effect by reading the response's `advancedRules` block, which reports the resolved value and its source.
+**Pass `advancedRules` when the user asks for it.** A request like "run a11y analysis with thorough advanced rules" or "scan with advanced rules disabled" maps directly onto this parameter.
+
+**It is conditionally advertised.** The server removes `advancedRules` from `analyze`'s published schema when Advanced Rules are not enabled for the caller — so on an unentitled or free-tier account the parameter is absent from the tool definition and passing it is silently ignored (no validation error, because the field is not in the schema). Its absence therefore tells you about the account's entitlement, not about the server version. Do not conclude the feature was removed.
 
 **Reading a screenshot honestly:** the image is the page as it looked *the moment before* `axe.run()` started. On SPAs, re-renders, `useEffect` work, animations, and in-flight requests mean the DOM axe actually scanned can differ from the picture. Do not describe an element as visible-but-not-flagged based on the screenshot — that skew, not a missed violation, is the usual explanation.
 

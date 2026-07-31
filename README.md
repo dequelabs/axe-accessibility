@@ -98,7 +98,9 @@ Since server 1.4.0, `analyze` merges **Advanced Rules** findings (screenshots + 
 - `isAdvanced: false` — deterministic axe-core, tuned for zero false positives. Authoritative.
 - `isAdvanced: true` — probabilistic. A strong signal to verify against the real UI, not a verdict.
 
-Tune per scan with the **`advancedRules`** parameter (`precise` | `balanced` | `thorough` | `disabled`), or set a server-wide default with **`AXE_ADVANCED_RULES`**. Because the parameter is per scan, plain requests work — "run a11y analysis with thorough advanced rules", "scan with advanced rules disabled" — and the plugin's guidance tells the agent to pass it. Each `analyze` response reports the resolved setting in an `advancedRules` block, including which source won; `{"value": "disabled", "source": "unavailable"}` means the org isn't entitled, so no advanced findings will appear.
+Tune per scan with the **`advancedRules`** parameter (`precise` | `balanced` | `thorough` | `disabled`, or the `90%`/`70%`/`50%` aliases), or set a server-wide default with **`AXE_ADVANCED_RULES`**. Because the parameter is per scan, plain requests work — "run a11y analysis with thorough advanced rules", "scan with advanced rules disabled" — and the plugin's guidance tells the agent to pass it.
+
+Every `analyze` response reports what actually applied in an `advancedRules` block. Its `source` is worth reading: `tool_arg`/`env_var`/`org_default` say which input won, while `org_policy_locked` means a fixed org policy rejected your override, and `tier_locked`/`unavailable` mean Advanced Rules aren't enabled for the account — so no advanced findings will appear regardless of what you pass. On those accounts the server also drops `advancedRules` from the tool's published schema, so its absence signals entitlement, not an old server.
 
 ## License
 

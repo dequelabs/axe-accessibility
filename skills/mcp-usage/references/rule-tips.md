@@ -48,7 +48,7 @@ Advanced Rules use screenshots, computer vision, and LLMs, so these findings are
 
 If a finding is genuinely wrong for your UI, say so and move on — do not contort the code to satisfy it. Persistent noise is a signal to pass `advancedRules: "precise"` on the next scan, or `"disabled"` for a purely deterministic one. Both are per-scan, so no restart is needed; `AXE_ADVANCED_RULES` sets the default when you want it to stick across every scan.
 
-If the response's `advancedRules` block reports `{"value": "disabled", "source": "unavailable"}`, Advanced Rules are not entitled on this account and none of these findings will ever appear — the absence is a licensing state, not a clean bill of health.
+If the response's `advancedRules` block reports a `value` of `disabled` with `source` `unavailable` or `tier_locked`, Advanced Rules are not enabled for this account and none of these findings will ever appear — the absence is a licensing state, not a clean bill of health. A `source` of `org_policy_locked` means a fixed org policy overrode the preset you asked for.
 
 ## General principles
 
