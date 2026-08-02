@@ -1,13 +1,13 @@
 ---
 name: mcp-generate-instructions
-description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-accessibility:mcp-generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the axe MCP analyze -> remediate -> verify workflow.
+description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-accessibility:mcp-generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the Axe MCP analyze/igt -> remediate -> verify workflow.
 argument-hint: "[targets] (optional: claude | copilot | cursor | agents | all)"
 allowed-tools: AskUserQuestion, Bash, Glob, Read, Edit, Write
 ---
 
 # Generate accessibility agent instructions
 
-Produce agent-instruction files that make a coding agent automatically run Deque's axe MCP analyze -> remediate -> verify workflow whenever it touches UI. The goal is the same effect as a hand-written `copilot-instructions.md`: every UI change is checked and fixed against the deterministic axe engine before it is considered done.
+Produce agent-instruction files that make a coding agent automatically run Deque's Axe MCP analyze -> remediate -> verify workflow whenever it touches UI. The goal is the same effect as a hand-written `copilot-instructions.md`: every UI change is checked and fixed against the axe engine before it is considered done.
 
 ## Step 1 — Determine targets
 
@@ -24,7 +24,29 @@ If `$1` specifies targets (`claude`, `copilot`, `cursor`, `agents`, or `all`), u
 
 ## Step 2 — Compose the content
 
-Use the canonical workflow text in `references/workflow-template.md` as the body. Adapt the tool-name references per target — see `references/targets.md` for each target's tool-naming convention and any file-format specifics (e.g. Cursor `.mdc` frontmatter). Keep the mandatory analyze -> remediate -> verify loop, the credit-aware note, and the image-alt guidance intact across all targets.
+Use the canonical workflow text in `references/workflow-template.md` as the body. Adapt the tool-name references per target — see `references/targets.md` for each target's tool-naming convention and any file-format specifics (e.g. Cursor `.mdc` frontmatter).
+
+Keep these intact across all targets — they are the parts that change agent behavior:
+
+- the mandatory analyze -> remediate -> verify loop
+- **the `remediate` batching rule** (one call per scan, `id` on every issue) — the most common cause of failed tool calls
+- **the field mapping**, including reading issues from `response.data` and never passing an issue's own `remediation` object into the `remediation` parameter
+- the deterministic (`isAdvanced: false`) vs. AI-derived (`isAdvanced: true`) trust distinction
+- the `igt` keyboard section and its different issue shape
+- the credit-aware note and the image-alt guidance
+
+## Step 2a — Refresh outdated sections
+
+When updating a file that already has an axe workflow section, check for guidance written against the pre-1.3.0 tool contract and correct it rather than appending alongside it. Tell-tale signs:
+
+- a per-issue `remediate` call, or "call `remediate` once per violation"
+- a flat `remediate({pageUrl, rule, elementHtml, remediation})` signature with no `id` and no `issues` array
+- reading issues from `response.issues` instead of `response.data`
+- `remediation` mapped from only `description` + `helpText`, with no mention of `summary`
+- no mention of `igt`
+- a blanket claim that all findings are deterministic / zero-false-positive
+
+Replace those in place — leaving them causes calls the server will reject.
 
 ## Step 3 — Write without clobbering
 
@@ -48,7 +70,7 @@ Inspect the repo to make the instructions concrete:
 Summarize which files were written/updated and remind the user that:
 
 - The instructions only take effect for agents that read them (Copilot reads `.github/copilot-instructions.md`, Claude Code reads `CLAUDE.md`, etc.).
-- The axe MCP Server must be connected (`/axe-accessibility:mcp-setup`) for the workflow to function.
+- The Axe MCP Server must be connected (`/axe-accessibility:mcp-setup`) for the workflow to function.
 - `/axe-accessibility:mcp-audit <url>` runs the same loop on demand.
 
 ## Additional resources

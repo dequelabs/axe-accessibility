@@ -1,10 +1,11 @@
 {
   "mcpServers": {
     "axe-mcp-server": {
+      "type": "stdio",
       "command": "sh",
       "args": [
         "-c",
-        "T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"
+        "unset AXE_ACCESS_TOKEN; T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server"
       ]
     }
   }
