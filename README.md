@@ -31,7 +31,7 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
     npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
     ```
 
-    Deriving the version keeps this correct as the server updates (npm auto-updates on each start, so a hardcoded pin drifts silently). See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server/choosing-a-distribution) for the authoritative pin and Linux system-library notes.
+    Deriving the version keeps this correct as the server updates (npm auto-updates on each start, so a hardcoded pin drifts silently). See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for the authoritative pin and Linux system-library notes.
   - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config calls `npx @deque/axe-auth`).
 
