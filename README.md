@@ -68,19 +68,23 @@ Install from the Deque-hosted marketplace (this repo doubles as one):
 /plugin install axe-accessibility
 ```
 
-Once accepted into Anthropic's community marketplace, users can also:
-
-```
-/plugin marketplace add anthropics/claude-plugins-community
-/plugin install axe-accessibility@claude-community
-```
+Once the plugin is accepted into the [Claude plugin directory](https://claude.com/plugins), no marketplace step is needed: Claude Code surfaces that directory as the built-in `claude-plugins-official` marketplace for every user, so `/plugin` finds it directly.
 
 ## Publishing
 
 Two distribution paths, not mutually exclusive:
 
-1. **Self-hosted marketplace** — push this repo under `dequelabs`; `.claude-plugin/marketplace.json` makes it installable immediately via `/plugin marketplace add`.
-2. **Anthropic community marketplace** — run `claude plugin validate .` (the review pipeline runs the same check plus automated safety screening), then submit at [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit) or [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit). Approved plugins are pinned by commit SHA in `anthropics/claude-plugins-community` and synced nightly. The curated `claude-plugins-official` marketplace is selected by Anthropic at its discretion (no application).
+1. **Self-hosted marketplace** — this repo doubles as one; `.claude-plugin/marketplace.json` makes it installable immediately via `/plugin marketplace add dequelabs/axe-accessibility`.
+2. **Claude plugin directory** — the community-driven directory that Claude Code exposes as the built-in `claude-plugins-official` marketplace. Submission requires a **public** GitHub repo (closed source is not accepted) and a passing validate:
+
+   ```sh
+   claude plugin validate .claude-plugin/plugin.json --strict
+   claude plugin validate .claude-plugin/marketplace.json --strict
+   ```
+
+   Submit through one of Anthropic's in-app forms — [claude.ai](https://claude.ai/admin-settings/directory/submissions/plugins/new), which needs a Team or Enterprise org plus directory-management access (Owners have it by default), or [Console](https://platform.claude.com/plugins/submit), which needs a Developer, Admin, or Owner role. Submission status and reviewer feedback appear on the [Directory page](https://claude.ai/admin-settings/directory/submissions) in organization settings. Anthropic runs automated screening on every submission; the "Anthropic Verified" badge is an additional, discretionary quality-and-safety review with no application path. After publication, pushes to this repo are picked up automatically — updates do not need re-submission.
+
+   This is a different directory from the [Connectors Directory](https://claude.com/docs/connectors/directory), which lists **remote** MCP servers only. The Axe MCP Server ships as a local stdio server, so the plugin directory is its route; see [Anthropic's review criteria](https://claude.com/docs/connectors/building/review-criteria), which both directories share.
 
 ## Quick start
 
@@ -109,6 +113,19 @@ Since server 1.4.0, `analyze` merges **Advanced Rules** findings (screenshots + 
 Tune per scan with the **`advancedRules`** parameter (`precise` | `balanced` | `thorough` | `disabled`, or the `90%`/`70%`/`50%` aliases), or set a server-wide default with **`AXE_ADVANCED_RULES`**. Because the parameter is per scan, plain requests work — "run a11y analysis with thorough advanced rules", "scan with advanced rules disabled" — and the plugin's guidance tells the agent to pass it.
 
 Every `analyze` response reports what actually applied in an `advancedRules` block. Its `source` is worth reading: `tool_arg`/`env_var`/`org_default` say which input won, while `org_policy_locked` means a fixed org policy rejected your override, and `tier_locked`/`unavailable` mean Advanced Rules aren't enabled for the account — so no advanced findings will appear regardless of what you pass. On those accounts the server also drops `advancedRules` from the tool's published schema, so its absence signals entitlement, not an old server.
+
+## Privacy Policy
+
+Deque's privacy policy applies to this plugin and the Axe MCP Server it configures: **<https://www.deque.com/privacy-policy/>** — privacy questions to <privacyinquiry@deque.com>.
+
+The plugin itself is configuration and instructions: the skills and `.mcp.json` in this repo collect, store, and transmit nothing on their own. Data leaves your machine only through the Axe MCP Server they configure.
+
+- **What stays local.** The server runs on your machine and drives a local Chromium against the URL you give it. Page content is read in that local browser.
+- **What is sent to Deque.** Requests to the Axe API (`AXE_SERVER_URL`, Deque's cloud by default) carry your credential plus the data needed to serve the call: authentication and entitlement/credit checks; for Advanced Rules, page context and screenshots processed with computer vision and LLMs; for `remediate`, the issue details you batch into the call, used to generate fix guidance. `analyze` with `advancedRules` disabled still authenticates against the API but sends no page content for AI processing.
+- **Credentials.** Either an `AXE_API_KEY` you set yourself, or OAuth tokens that `@deque/axe-auth` stores in your OS keychain and refreshes. Neither is written into this repo or into the plugin's configuration.
+- **You choose what gets scanned.** Because the URL is yours to pick, scanning an authenticated or internal page means sending that page's content to Deque under the terms above. Scope scans with `selector`, or set `advancedRules: "disabled"`, when a page should not be processed by AI.
+
+Collection, use, storage, third-party sharing, retention, and regional processing are governed by the privacy policy linked above together with your Axe DevTools agreement.
 
 ## License
 

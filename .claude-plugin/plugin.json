@@ -1,5 +1,7 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "axe-accessibility",
+  "displayName": "Axe Accessibility",
   "version": "0.2.0",
   "description": "Deque's accessibility toolkit for coding agents. Get accessible UI effortlessly - your agent builds, tests, and remediates accessibility in the loop, so it's never a separate, manual chore. Currently powers the Axe MCP Server scan -> remediate -> verify workflow, including keyboard guided tests; expanding over time.",
   "author": {
@@ -10,5 +12,13 @@
   "homepage": "https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server",
   "repository": "https://github.com/dequelabs/axe-accessibility",
   "license": "MIT",
-  "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp", "remediation"]
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "axe",
+    "deque",
+    "wcag",
+    "mcp",
+    "remediation"
+  ]
 }
