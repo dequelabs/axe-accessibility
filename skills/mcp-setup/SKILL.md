@@ -15,22 +15,22 @@ The one universal prerequisite is an **Axe DevTools for Web** subscription whose
 
 Ask which to use (`AskUserQuestion`). **Recommend npm for local development** — it is the default the plugin ships.
 
-- **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
-- **Docker** — runs as a container from `dequesystems/axe-mcp-server:v1.6.0`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
+- **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@^1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
+- **Docker** — runs as a container from `dequesystems/axe-mcp-server:latest`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
 
-Both are **pinned to server 1.6.0**, the release whose response shapes this plugin documents. Keep the pin in any config you write. An unpinned server can update to a release whose responses no longer match the plugin's guidance.
+Both track **`^1.6.0`**: 1.x releases are picked up automatically on the next start, and a future 2.x cannot land on a user who has not updated the plugin. This guidance documents server 1.6.0's response shapes; within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree. Keep the `^1.6.0` range in any config you write.
 
 Verify the chosen prerequisite before writing config:
 
 - npm: `node --version` (must be >= 22.19.0), then install the browser. **The server does not download it for you**, and skipping this is the most common first-run failure.
 
-  **Pin Playwright to the version the pinned server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Resolve the pin **from the same server version the config runs**, then install:
+  **Pin Playwright to the version the server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Derive it from the server package, then install:
 
   ```sh
-  npx playwright@$(npm view axe-mcp-server@1.6.0 dependencies.playwright) install chromium
+  npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
   ```
 
-  The `@1.6.0` in this command must match the `axe-mcp-server@1.6.0` in the MCP config. Query unversioned `axe-mcp-server` instead and you get the *latest* release's Playwright, which goes wrong the day a new server release changes it. If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
+  If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
 > **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
@@ -51,8 +51,8 @@ Ask which method to use (`AskUserQuestion`):
 
 ### OAuth path
 
-1. Log in: `npx -y @deque/axe-auth@1.6.0 login` (add `--server <url>` for private cloud / on-prem). This opens a browser for the PKCE flow and stores tokens in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Requires Node 22 LTS+.
-2. Verify a token can be minted: `npx -y @deque/axe-auth@1.6.0 token` should print a token. Logout later with `npx -y @deque/axe-auth@1.6.0 logout`.
+1. Log in: `npx -y @deque/axe-auth@^1.6.0 login` (add `--server <url>` for private cloud / on-prem). This opens a browser for the PKCE flow and stores tokens in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Requires Node 22 LTS+.
+2. Verify a token can be minted: `npx -y @deque/axe-auth@^1.6.0 token` should print a token. Logout later with `npx -y @deque/axe-auth@^1.6.0 logout`.
 
 > **npm + OAuth needs an explicit `unset`.** Under Docker, credentials are passed with explicit `-e` flags, so an inherited `AXE_API_KEY` never reaches the server. The npm distribution inherits the whole shell environment — so if the user has `AXE_API_KEY` exported *and* an OAuth session, both variables reach the server and it fails at startup. Any npm+OAuth config must `unset AXE_API_KEY` when it sets `AXE_ACCESS_TOKEN`. The bundled config does this.
 

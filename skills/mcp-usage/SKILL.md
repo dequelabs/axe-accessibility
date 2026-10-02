@@ -14,6 +14,25 @@ Some servers also list a standalone **`igt`** tool titled "IGT (Deprecated)". It
 
 The tools may appear under a client-specific prefix (for example `mcp__axe-mcp-server__analyze` in Claude Code, `mcp_axe-mcp-server_analyze` in Copilot). Match whatever naming the host client uses; the behavior is identical.
 
+### When this guidance and the server disagree, the server wins
+
+The shapes and parameters described here are those of **server 1.6.0**. The bundled
+config tracks `axe-mcp-server@^1.6.0`, so the running server may be a newer 1.x
+release. That matters because the server builds its own tool descriptions and input
+schemas at startup, from the account's entitlements — `advancedRules` and `igtTools`
+are both dropped from the published schema when unavailable, and the `igtTools` enum
+narrows to the tools the account actually has.
+
+So treat the live tool description and schema as authoritative, and this file as
+guidance for reading what comes back:
+
+- A parameter described here but absent from the schema means the account is not
+  entitled to it, not that the server is old. Do not pass it.
+- If a response does not match the shapes below, re-read the tool's own description
+  before assuming the call failed.
+- `serverInfo.version` in the MCP `initialize` response reports the running version if
+  you need to check it.
+
 ## Core workflow: analyze -> remediate -> verify
 
 Apply this loop whenever creating, modifying, or auditing user-facing UI — not only when accessibility is explicitly requested:
@@ -127,7 +146,7 @@ So `{ "value": "disabled", "source": "unavailable" }` or `"tier_locked"` means t
 
 **Pass `advancedRules` when the user asks for it.** A request like "run a11y analysis with thorough advanced rules" or "scan with advanced rules disabled" maps directly onto this parameter.
 
-**It is conditionally advertised.** The server removes `advancedRules` from `analyze`'s published schema when Advanced Rules are not enabled for the caller — so on an unentitled or free-tier account the parameter is absent from the tool definition and passing it is silently ignored (no validation error, because the field is not in the schema). `igtTools` works the same way: its enum lists only the guided tests the account is entitled to, and the whole parameter disappears when none are. The plugin's bundled config pins the server version, so on that config a missing parameter reflects the account's entitlement, not an old server. Do not conclude the feature was removed. On a hand-written config with an old or unpinned server, check `serverInfo.version` before drawing that conclusion.
+**It is conditionally advertised.** The server removes `advancedRules` from `analyze`'s published schema when Advanced Rules are not enabled for the caller — so on an unentitled or free-tier account the parameter is absent from the tool definition and passing it is silently ignored (no validation error, because the field is not in the schema). `igtTools` works the same way: its enum lists only the guided tests the account is entitled to, and the whole parameter disappears when none are. A missing parameter almost always reflects the account's entitlement rather than an old server, so do not conclude the feature was removed. If you need to rule the version out, `serverInfo.version` in the MCP `initialize` response reports what is running.
 
 **Reading a screenshot honestly:** the image is the page as it looked *the moment before* `axe.run()` started. On SPAs, re-renders, `useEffect` work, animations, and in-flight requests mean the DOM axe actually scanned can differ from the picture. Do not describe an element as visible-but-not-flagged based on the screenshot — that skew, not a missed violation, is the usual explanation.
 

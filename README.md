@@ -2,7 +2,7 @@
 
 Deque's accessibility toolkit for coding agents — get set up fast and teach your coding agent to ship accessible UI.
 
-**v1 focuses on the [Axe MCP Server](https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server)** (pinned to **1.6.0**) and its `analyze` and `remediate` tools, including guided tests run through `analyze`. They're wrapped in a smooth onboarding + usage workflow. The plugin is the umbrella for Deque's agent-facing accessibility capabilities; more will be added over time.
+**v1 focuses on the [Axe MCP Server](https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server)** (documented against **1.6.0**) and its `analyze` and `remediate` tools, including guided tests run through `analyze`. They're wrapped in a smooth onboarding + usage workflow. The plugin is the umbrella for Deque's agent-facing accessibility capabilities; more will be added over time.
 
 - **Wire up the server** for your IDE/MCP client — your choice of distribution (npm or Docker) and authentication (API key or OAuth 2.0).
 - **Teach your agent** to run the mandatory **analyze → remediate → verify** loop on every UI change, with correct batching and field mapping.
@@ -17,22 +17,22 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
 | `/axe-accessibility:mcp-setup` | Skill (command) | Interactive setup: pick distribution (npm or Docker) and auth (API key or OAuth), configure your client, verify the connection. |
 | `/axe-accessibility:mcp-generate-instructions` | Skill (command) | Generate/merge agent-instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor rules, `AGENTS.md`) that enforce the workflow. |
 | `/axe-accessibility:mcp-audit` | Skill (command) | Drive the loop on a URL: analyze → batched remediate → apply → re-verify until 0 violations or a round cap, plus guided tests when you ask for them. |
-| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution, pinned to `axe-mcp-server@1.6.0` and `@deque/axe-auth@1.6.0` — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
+| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution, tracking `axe-mcp-server@^1.6.0` and `@deque/axe-auth@^1.6.0` — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
 
 ## Prerequisites
 
 - An **[Axe DevTools for Web](https://www.deque.com/axe/devtools/pricing/)** subscription — the Bundle plan includes Axe MCP Server access. Without it, the tools will fail to authenticate.
 - **One runtime**, depending on distribution:
-  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time Chromium install. The bundled config runs `npx -y axe-mcp-server@1.6.0`, which does **not** download a browser for you — skip this and every scan fails with `Chromium is not installed`.
+  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time Chromium install. The bundled config runs `npx -y axe-mcp-server@^1.6.0`, which does **not** download a browser for you — skip this and every scan fails with `Chromium is not installed`.
 
-    **Install the Chromium that server 1.6.0 expects.** A bare `npx playwright install chromium` resolves to Playwright's latest, which can install a Chromium revision the server doesn't support. Derive the Playwright version from the **same pinned server release**:
+    **Install a Chromium the server supports.** A bare `npx playwright install chromium` resolves to Playwright's latest, which can install a revision the server doesn't support. Derive the version from the server package instead:
 
     ```sh
-    npx playwright@$(npm view axe-mcp-server@1.6.0 dependencies.playwright) install chromium
+    npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
     ```
 
-    The `@1.6.0` matters. Unversioned `npm view axe-mcp-server …` reports the *latest* release's Playwright, which can differ from the pinned server's once a newer server ships. If a scan ever fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that exact command — it names the version the running server expects. See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for Linux system-library notes.
-  - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:v1.6.0`, pulled automatically on first launch (no `docker login` required).
+    If a scan ever fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that exact command — it names the version the running server expects. See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for Linux system-library notes.
+  - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config calls `npx @deque/axe-auth`).
 
 ## Distributions
@@ -41,21 +41,23 @@ The plugin defaults to **npm**, which is the lower-friction path for local devel
 
 | | npm (default) | Docker |
 |---|---|---|
-| Command | `npx -y axe-mcp-server@1.6.0` | `docker run … dequesystems/axe-mcp-server:v1.6.0` |
+| Command | `npx -y axe-mcp-server@^1.6.0` | `docker run … dequesystems/axe-mcp-server:latest` |
 | Requires | Node >= 22.19.0 | Docker daemon running |
 | Browser | one-time Chromium install, Playwright pinned to the server's version | bundled in the image |
 | Reaching `localhost` | direct | needs `--add-host=host.docker.internal:host-gateway`, and a dev server bound to `0.0.0.0` |
-| Updates | pinned; moves when the plugin updates | pinned tag; moves when the plugin updates |
+| Updates | automatic within 1.x (`^1.6.0`) | re-pull `:latest` manually |
 | `AXE_CHROME_PATH` | supported | **fails at startup** |
 | Best for | local development | isolation, CI images, no Node toolchain |
 
 > The npm package is **`axe-mcp-server`** — unscoped. `@deque/axe-mcp-server` does not exist; only the auth CLI is scoped (`@deque/axe-auth`).
 
-### Why the server is pinned
+### Why the server tracks `^1.6.0`
 
-The plugin's guidance documents the server's **exact response shapes** — for example, guided-test results arriving under `data.igt`, keyed by tool name — and agents follow it literally. An unpinned `npx -y axe-mcp-server` picks up each new server release on its next start. If a release reshaped a response, every unpinned user would silently get guidance that no longer matches their server. Pinning keeps the docs and the server provably consistent. The trade-off is that new server releases reach you through a plugin update rather than automatically.
+The plugin's guidance documents the server's response shapes — for example, guided-test results arriving under `data.igt`, keyed by tool name — and agents follow it literally. A caret range keeps 1.x fixes and features flowing automatically, while stopping a future 2.x from landing on a user who has not updated the plugin.
 
-**Updating the pin** (maintainers): move every occurrence together. That means `.mcp.json` (both `axe-mcp-server@` and `@deque/axe-auth@`), the Playwright derivation (`npm view axe-mcp-server@<version> …`) here and in `skills/mcp-setup/`, the Docker tag in `client-configs.md`, and every documented response shape. Then bump the plugin version. Search for the old version string (`grep -rn "1\.6\.0" .`) to find them all.
+Within 1.x the guidance and the server stay compatible. Where they ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
+
+**Updating for a new server release** (maintainers): the range only needs moving for a major version. For a 1.x release, re-check the documented response shapes against the new server and update `skills/mcp-usage/references/field-mapping.md` if anything moved. For a 2.x, move `^1.6.0` in `.mcp.json`, `README.md`, `skills/mcp-setup/SKILL.md` and `client-configs.md` together (`grep -rn "\^1\.6\.0" .`), re-verify every shape, and bump the plugin version.
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -103,7 +105,7 @@ Two distribution paths, not mutually exclusive:
 Two mechanisms are supported; choose during `/axe-accessibility:mcp-setup`:
 
 - **API key** — create one at the [Axe Account Portal](https://axe.deque.com) (API Keys → "Axe MCP Server" product), then export `AXE_API_KEY`.
-- **OAuth 2.0** — `npx -y @deque/axe-auth@1.6.0 login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).
+- **OAuth 2.0** — `npx -y @deque/axe-auth@^1.6.0 login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).
 
 The bundled `.mcp.json` is **auth-agnostic**: it mints an OAuth token and passes **exactly one** credential — the OAuth `AXE_ACCESS_TOKEN` if you're logged in, otherwise `AXE_API_KEY`. The server rejects having both set, so the config unsets the API key when a token is present. Set `AXE_SERVER_URL` for private cloud / on-prem deployments; see `client-configs.md` for the full environment-variable table (`AXE_ADVANCED_RULES`, `AXE_CHROME_PATH`, `BROWSER_TIMEOUT_MS`, `LOG_LEVEL`).
 
