@@ -130,7 +130,14 @@ All three tools emit the same issue shape. **It differs from `analyze` issues �
 - `selector` — array, as with `analyze`.
 - `impact` — same scale.
 - `manifestGuide` — which guided test produced it: `"keyboard"`, `"interactive-elements"`, or **`"aria-modal"`** for the modal tool (not `"modal"`).
-- `aiReasoning` — AI explanation of why this is a problem, or `null` (it is `null` for deterministic rules, and can be `null` even for AI-adjudicated ones). Often the most useful text for `remediate`; fold it in when non-null. It may openly reason about DOM it cannot fully resolve — treat it as a lead to confirm, not fact.
+- `aiReasoning` — AI explanation of why this is a problem, or `null`. Often the most useful text for `remediate`; fold it in when non-null. It may openly reason about DOM it cannot fully resolve — treat it as a lead to confirm, not fact.
+
+  **Expect it to be `null` often, and never read anything into its absence.** Two independent reasons it goes missing:
+
+  1. **Only three rules ever populate it** — `aria-role-missing`, `keyboard-inaccessible`, and `keyboard-trap`. Every other guided-test rule, including all of the `modal` rules and `focus-indicator-missing`, is deterministic and resolves to `null` by construction.
+  2. **MCP runs request a lean AI response upstream.** The analysis service makes its reasoning fields optional when the caller asks for the trimmed response, which is what the MCP path does. The server builds `aiReasoning` by collapsing the rule's AI *suggestion* and *reasoning*, so on a lean run it can degrade to the suggestion alone, or to `null` even for one of the three rules above.
+
+  So a `null` `aiReasoning` means "no explanation came back", never "the AI had no concerns". Do not report its absence as evidence the element is fine, and do not retry the scan to try to obtain it.
 
 > **Empty `source` breaks the whole batch.** `modal` issues come back with `source: ""`. `remediate` rejects the **entire call** — not just that entry — if any `elementHtml` is empty (`issues[N].element_html must be a non-empty string`). Before batching, for every issue whose `source` is empty, find the element at its `selector` in the source code (or the rendered DOM) and send that element's real HTML as `elementHtml`. For a modal, send the dialog container with its contents. If you cannot find it, leave that issue out of the batch and report it separately. Never send `""`.
 
