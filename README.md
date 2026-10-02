@@ -2,37 +2,37 @@
 
 Deque's accessibility toolkit for coding agents — get set up fast and teach your coding agent to ship accessible UI.
 
-**v1 focuses on the [Axe MCP Server](https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server)** and its `analyze`, `igt`, and `remediate` tools, wrapped in a smooth onboarding + usage workflow. The plugin is the umbrella for Deque's agent-facing accessibility capabilities; more will be added over time.
+**v1 focuses on the [Axe MCP Server](https://docs.deque.com/devtools-server/4.0.0/en/axe-mcp-server)** (pinned to **1.6.0**) and its `analyze` and `remediate` tools, including guided tests run through `analyze`. They're wrapped in a smooth onboarding + usage workflow. The plugin is the umbrella for Deque's agent-facing accessibility capabilities; more will be added over time.
 
 - **Wire up the server** for your IDE/MCP client — your choice of distribution (npm or Docker) and authentication (API key or OAuth 2.0).
 - **Teach your agent** to run the mandatory **analyze → remediate → verify** loop on every UI change, with correct batching and field mapping.
 - **Audit on demand** — analyze a page, batch-remediate the violations, and re-verify until automated accessibility violations hit zero.
-- **Test the keyboard** — run the keyboard Intelligent Guided Test for focus order, focus traps, and focus visibility, which a static scan cannot see.
+- **Run guided tests on request** — keyboard (focus order, traps, visibility), interactive elements (accessible name, role, state), and modal (dialog semantics, focus handling, dismissal). These are Intelligent Guided Tests a static scan cannot replace. They use AI credits, so the agent runs them only when you ask.
 
 ## What's included
 
 | Component | Type | What it does |
 |---|---|---|
-| `mcp-usage` | Skill (auto) | Background knowledge so any agent calls `analyze`/`igt`/`remediate` correctly (field mapping, batching, credit awareness, the workflow). Loads automatically on accessibility tasks. |
+| `mcp-usage` | Skill (auto) | Background knowledge so any agent calls `analyze`/`remediate` correctly (field mapping, guided tests, batching, credit awareness, the workflow). Loads automatically on accessibility tasks. |
 | `/axe-accessibility:mcp-setup` | Skill (command) | Interactive setup: pick distribution (npm or Docker) and auth (API key or OAuth), configure your client, verify the connection. |
 | `/axe-accessibility:mcp-generate-instructions` | Skill (command) | Generate/merge agent-instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor rules, `AGENTS.md`) that enforce the workflow. |
-| `/axe-accessibility:mcp-audit` | Skill (command) | Drive the loop on a URL: analyze → batched remediate → apply → re-verify until 0 violations or a round cap, plus an optional keyboard pass. |
-| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
+| `/axe-accessibility:mcp-audit` | Skill (command) | Drive the loop on a URL: analyze → batched remediate → apply → re-verify until 0 violations or a round cap, plus guided tests when you ask for them. |
+| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution, pinned to `axe-mcp-server@1.6.0` and `@deque/axe-auth@1.6.0` — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
 
 ## Prerequisites
 
 - An **[Axe DevTools for Web](https://www.deque.com/axe/devtools/pricing/)** subscription — the Bundle plan includes Axe MCP Server access. Without it, the tools will fail to authenticate.
 - **One runtime**, depending on distribution:
-  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time Chromium install. The bundled config runs `npx -y axe-mcp-server`, which does **not** download a browser for you — skip this and every scan fails with `Chromium is not installed`.
+  - **npm (default):** Node.js **>= 22.19.0**, plus a one-time Chromium install. The bundled config runs `npx -y axe-mcp-server@1.6.0`, which does **not** download a browser for you — skip this and every scan fails with `Chromium is not installed`.
 
-    **Pin Playwright to the version the server ships**, since a bare `npx playwright install chromium` resolves to Playwright's latest and can install a Chromium revision the server doesn't support:
+    **Install the Chromium that server 1.6.0 expects.** A bare `npx playwright install chromium` resolves to Playwright's latest, which can install a Chromium revision the server doesn't support. Derive the Playwright version from the **same pinned server release**:
 
     ```sh
-    npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
+    npx playwright@$(npm view axe-mcp-server@1.6.0 dependencies.playwright) install chromium
     ```
 
-    Deriving the version keeps this correct as the server updates (npm auto-updates on each start, so a hardcoded pin drifts silently). See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for the authoritative pin and Linux system-library notes.
-  - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
+    The `@1.6.0` matters. Unversioned `npm view axe-mcp-server …` reports the *latest* release's Playwright, which can differ from the pinned server's once a newer server ships. If a scan ever fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that exact command — it names the version the running server expects. See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for Linux system-library notes.
+  - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:v1.6.0`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config calls `npx @deque/axe-auth`).
 
 ## Distributions
@@ -41,15 +41,21 @@ The plugin defaults to **npm**, which is the lower-friction path for local devel
 
 | | npm (default) | Docker |
 |---|---|---|
-| Command | `npx -y axe-mcp-server` | `docker run … dequesystems/axe-mcp-server:latest` |
+| Command | `npx -y axe-mcp-server@1.6.0` | `docker run … dequesystems/axe-mcp-server:v1.6.0` |
 | Requires | Node >= 22.19.0 | Docker daemon running |
 | Browser | one-time Chromium install, Playwright pinned to the server's version | bundled in the image |
 | Reaching `localhost` | direct | needs `--add-host=host.docker.internal:host-gateway`, and a dev server bound to `0.0.0.0` |
-| Updates | automatic per start | re-pull the image |
+| Updates | pinned; moves when the plugin updates | pinned tag; moves when the plugin updates |
 | `AXE_CHROME_PATH` | supported | **fails at startup** |
 | Best for | local development | isolation, CI images, no Node toolchain |
 
 > The npm package is **`axe-mcp-server`** — unscoped. `@deque/axe-mcp-server` does not exist; only the auth CLI is scoped (`@deque/axe-auth`).
+
+### Why the server is pinned
+
+The plugin's guidance documents the server's **exact response shapes** — for example, guided-test results arriving under `data.igt`, keyed by tool name — and agents follow it literally. An unpinned `npx -y axe-mcp-server` picks up each new server release on its next start. If a release reshaped a response, every unpinned user would silently get guidance that no longer matches their server. Pinning keeps the docs and the server provably consistent. The trade-off is that new server releases reach you through a plugin update rather than automatically.
+
+**Updating the pin** (maintainers): move every occurrence together. That means `.mcp.json` (both `axe-mcp-server@` and `@deque/axe-auth@`), the Playwright derivation (`npm view axe-mcp-server@<version> …`) here and in `skills/mcp-setup/`, the Docker tag in `client-configs.md`, and every documented response shape. Then bump the plugin version. Search for the old version string (`grep -rn "1\.6\.0" .`) to find them all.
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -97,11 +103,11 @@ Two distribution paths, not mutually exclusive:
 Two mechanisms are supported; choose during `/axe-accessibility:mcp-setup`:
 
 - **API key** — create one at the [Axe Account Portal](https://axe.deque.com) (API Keys → "Axe MCP Server" product), then export `AXE_API_KEY`.
-- **OAuth 2.0** — `npx -y @deque/axe-auth login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).
+- **OAuth 2.0** — `npx -y @deque/axe-auth@1.6.0 login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).
 
 The bundled `.mcp.json` is **auth-agnostic**: it mints an OAuth token and passes **exactly one** credential — the OAuth `AXE_ACCESS_TOKEN` if you're logged in, otherwise `AXE_API_KEY`. The server rejects having both set, so the config unsets the API key when a token is present. Set `AXE_SERVER_URL` for private cloud / on-prem deployments; see `client-configs.md` for the full environment-variable table (`AXE_ADVANCED_RULES`, `AXE_CHROME_PATH`, `BROWSER_TIMEOUT_MS`, `LOG_LEVEL`).
 
-> **Note:** `remediate` consumes AI credits from your organization's allocation, **per issue in the batch** — not per call. It is a batched tool: send every issue from one scan in a single call (up to 25). That is the contract, not a discount, so cost scales with issue count. The plugin's guidance sends every issue instance rather than collapsing repeats by rule — remediation is tailored per element, and one rule spans very different fixes — and asks before remediating unusually large scans. `analyze` does not consume credits, so re-verifying is cheap.
+> **Note:** two things consume AI credits from your organization's allocation: **`remediate`** and **guided tests**. A plain `analyze` doesn't, so re-verifying is cheap. The agent runs guided tests only when you ask for what they cover, never by default. `remediate` is charged **per issue in the batch** — not per call. It is a batched tool: send every issue from one scan in a single call (up to 25). That is the contract, not a discount, so cost scales with issue count. The plugin's guidance sends every issue instance rather than collapsing repeats by rule — remediation is tailored per element, and one rule spans very different fixes — and asks before remediating unusually large scans.
 
 ## Findings are not all deterministic
 
@@ -121,7 +127,7 @@ Deque's privacy policy applies to this plugin and the Axe MCP Server it configur
 The plugin itself is configuration and instructions: the skills and `.mcp.json` in this repo collect, store, and transmit nothing on their own. Data leaves your machine only through the Axe MCP Server they configure.
 
 - **What stays local.** The server runs on your machine and drives a local Chromium against the URL you give it. Page content is read in that local browser.
-- **What is sent to Deque.** Requests to the Axe API (`AXE_SERVER_URL`, Deque's cloud by default) carry your credential plus the data needed to serve the call: authentication and entitlement/credit checks; for Advanced Rules, page context and screenshots processed with computer vision and LLMs; for `remediate`, the issue details you batch into the call, used to generate fix guidance. `analyze` with `advancedRules` disabled still authenticates against the API but sends no page content for AI processing.
+- **What is sent to Deque.** Requests to the Axe API (`AXE_SERVER_URL`, Deque's cloud by default) carry your credential plus the data needed to serve the call: authentication and entitlement/credit checks; for Advanced Rules, page context and screenshots processed with computer vision and LLMs; for guided tests, the page elements under test, analyzed with AI; for `remediate`, the issue details you batch into the call, used to generate fix guidance. `analyze` with `advancedRules` disabled still authenticates against the API but sends no page content for AI processing.
 - **Credentials.** Either an `AXE_API_KEY` you set yourself, or OAuth tokens that `@deque/axe-auth` stores in your OS keychain and refreshes. Neither is written into this repo or into the plugin's configuration.
 - **You choose what gets scanned.** Because the URL is yours to pick, scanning an authenticated or internal page means sending that page's content to Deque under the terms above. Scope scans with `selector`, or set `advancedRules: "disabled"`, when a page should not be processed by AI.
 

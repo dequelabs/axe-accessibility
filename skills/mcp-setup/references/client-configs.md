@@ -2,8 +2,10 @@
 
 Two independent choices: **distribution** (npm or Docker) and **auth** (API key or OAuth). Pick the shape, then drop it into the client block below. In every snippet the server is named `axe-mcp-server`, which is also the tool prefix (e.g. `mcp__axe-mcp-server__analyze`).
 
-- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist). Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
-- **Docker:** public image `dequesystems/axe-mcp-server:latest` (anonymously pullable — no `docker login` required).
+- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist), pinned to **`axe-mcp-server@1.6.0`** and `@deque/axe-auth@1.6.0`. Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version *that server release* ships (`npx playwright@$(npm view axe-mcp-server@1.6.0 dependencies.playwright) install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
+- **Docker:** public image `dequesystems/axe-mcp-server:v1.6.0` (anonymously pullable — no `docker login` required).
+
+> **Why every shape pins 1.6.0.** The plugin's guidance documents the exact response shapes of server 1.6.0 — for example, guided-test results keyed by tool name under `data.igt`. An unpinned `npx -y axe-mcp-server` (or `:latest`) picks up a new server release on its next start, and that release could change those shapes without the guidance changing with it. Pinning keeps the docs and the server provably consistent. The server version, the Playwright derivation, and the Docker tag move **together** when the plugin is updated for a new release. Users who deliberately want the newest server can drop the pin, but they then run ahead of what this plugin documents.
 
 > **Mutual exclusivity:** the server **fails at startup if both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set**. Every shape below passes exactly one credential — never both.
 
@@ -19,7 +21,7 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 {
   "type": "stdio",
   "command": "npx",
-  "args": ["-y", "axe-mcp-server"],
+  "args": ["-y", "axe-mcp-server@1.6.0"],
   "env": { "AXE_API_KEY": "${AXE_API_KEY}" }
 }
 ```
@@ -30,7 +32,7 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth token)\"; exec npx -y axe-mcp-server"]
+  "args": ["-c", "unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@1.6.0 token)\"; exec npx -y axe-mcp-server@1.6.0"]
 }
 ```
 
@@ -46,7 +48,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "unset AXE_ACCESS_TOKEN; T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server"]
+  "args": ["-c", "unset AXE_ACCESS_TOKEN; T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server@1.6.0"]
 }
 ```
 
@@ -56,7 +58,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 {
   "type": "stdio",
   "command": "docker",
-  "args": ["run", "--add-host=host.docker.internal:host-gateway", "-i", "--rm", "-e", "AXE_API_KEY", "-e", "AXE_SERVER_URL", "dequesystems/axe-mcp-server:latest"]
+  "args": ["run", "--add-host=host.docker.internal:host-gateway", "-i", "--rm", "-e", "AXE_API_KEY", "-e", "AXE_SERVER_URL", "dequesystems/axe-mcp-server:v1.6.0"]
 }
 ```
 
@@ -66,7 +68,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
+  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:v1.6.0"]
 }
 ```
 
@@ -76,7 +78,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "T=\"$(npx -y @deque/axe-auth token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
+  "args": ["-c", "T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:v1.6.0; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:v1.6.0; fi"]
 }
 ```
 
@@ -97,6 +99,7 @@ Set `AXE_API_KEY` and `AXE_SERVER_URL` in the environment that launches the clie
 | `AXE_SERVER_URL` | Account Portal base URL; required for regional SaaS, private cloud, on-prem. | `https://axe.deque.com` | both |
 | `AXE_ADVANCED_RULES` | Default Advanced Rules confidence preset: `precise` \| `balanced` \| `thorough` \| `disabled`. Individual scans override it with the `advancedRules` parameter. | org default | both |
 | `AXE_CHROME_PATH` | Chrome/Chromium binary to use instead of the Playwright-managed install. **Fails at startup if set under Docker.** | Playwright's | **npm only** |
+| `AXE_SCREENSHOT_DIR` | Directory `analyze` writes screenshots to when called with `screenshot: { save: true }`. Under Docker it is inside the container — mount a volume to reach it. | OS temp dir | both |
 | `BROWSER_TIMEOUT_MS` | Browser interaction timeout. | `30000` | both |
 | `LOG_LEVEL` | `debug` \| `info` \| `warn` \| `error`. | `info` | both |
 
@@ -166,13 +169,13 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 
 ### Either distribution
 
-- **401 / auth errors:** confirm `AXE_API_KEY` is exported in the client's launch environment, or that `npx -y @deque/axe-auth token` prints a token (re-run `login` if not).
+- **401 / auth errors:** confirm `AXE_API_KEY` is exported in the client's launch environment, or that `npx -y @deque/axe-auth@1.6.0 token` prints a token (re-run `login` if not).
 - **Server exits immediately at startup:** most often both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set. Under npm this happens silently via inherited environment — see the `unset` note above.
-- **OAuth token expired:** since 1.4.0 the error tells you what to do — re-authenticate with `npx -y @deque/axe-auth login` and restart the MCP server connection.
+- **OAuth token expired:** since 1.4.0 the error tells you what to do — re-authenticate with `npx -y @deque/axe-auth@1.6.0 login` and restart the MCP server connection.
 - **Long sessions:** if calls start failing after hours, restart the MCP server connection to force a token refresh.
 - **A newly enabled feature doesn't show up (e.g. `analyze` has no `advancedRules` parameter after Advanced Rules were turned on):** the server resolves feature flags **once at startup**, before it accepts a connection, and never emits `tools/list_changed`. So the advertised schema is fixed for the life of the process, and clients cache it on top of that. **Fully quit and relaunch the client** — in VS Code, "Restart Server" alone is not enough; a complete quit and relaunch is. Then start a new chat session, since the tool list handed to the model can be cached per session. Verify with `LOG_LEVEL=debug` and look for the `Fetched feature flags` line in the client's MCP output.
-- **`Selector did not match any element on the page`:** an `analyze`/`igt` `selector` matched nothing, which fails the whole scan. Confirm the selector exists (or omit it) rather than guessing.
-- **Result too large for the client:** real pages produce big payloads (~85KB from `analyze`, several hundred KB from `igt`). Scope with `selector`, or read the spilled result file and extract only the fields needed.
+- **`Selector did not match any element on the page`:** an `analyze` `selector` matched nothing, which fails the whole scan. Confirm the selector exists (or omit it) rather than guessing.
+- **Result too large for the client:** real pages produce big payloads (~85KB from a plain `analyze`, more when guided tests add their `igtElements` inventory). Scope with `selector`, or read the spilled result file and extract only the fields needed.
 - **Private cloud:** set `AXE_SERVER_URL` and pass `--server <url>` to `login`.
 
 ### npm only
@@ -184,8 +187,8 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 
 ### Docker only
 
-- **Server not listed / won't connect:** ensure Docker Desktop is running and the image is pulled (`docker pull dequesystems/axe-mcp-server:latest`).
+- **Server not listed / won't connect:** ensure Docker Desktop is running and the image is pulled (`docker pull dequesystems/axe-mcp-server:v1.6.0`).
 - **`Failed to resolve an IP address for "host.docker.internal"`:** the `docker run` args are missing `--add-host=host.docker.internal:host-gateway`. Add it (most common on Linux) and restart the server.
 - **`net::ERR_CONNECTION_REFUSED` scanning a local dev server:** the dev server is bound only to `127.0.0.1` and is unreachable from the container. Restart it listening on all interfaces, e.g. `npm run dev -- --host=0.0.0.0`. (Switching to the npm distribution avoids this class of problem entirely.)
 - **`AXE_CHROME_PATH` set:** remove it — it fails at startup under Docker.
-- **Stale version — features documented but missing:** `:latest` does **not** auto-update an already-pulled image, so a machine can sit on an old release indefinitely while npm users are current. Symptom: a documented parameter has no effect, or a release-noted feature is absent (e.g. an image still on 1.3.0 has no `screenshot` support). Confirm the running version — the MCP `initialize` response carries `serverInfo.version` — then `docker pull dequesystems/axe-mcp-server:latest` and restart the connection. The npm distribution does not have this failure mode.
+- **Stale version — features documented but missing:** a config still on `:latest` does **not** auto-update an already-pulled image, so a machine can sit on an old release indefinitely. Symptom: a documented parameter has no effect, or a release-noted feature is absent (e.g. no `igtTools` on `analyze`, which needs 1.5.0+). Confirm the running version — the MCP `initialize` response carries `serverInfo.version` — then switch the config to the pinned `dequesystems/axe-mcp-server:v1.6.0` tag and restart the connection.
