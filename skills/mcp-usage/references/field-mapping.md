@@ -39,6 +39,19 @@ Every issue carries all of these fields:
 
 > **The `remediation` trap.** The issue's own `remediation` is axe check data (`{any, all, none}`). The `remediation` field `remediate` expects is a **string you compose**. Passing the object through is the most common failure. Compose the string from `summary` + `description` + `helpText`.
 
+### Org settings can remove issues before you see them
+
+The server applies the organization's scan settings to the issue list before returning it, so a clean result is not always a clean page. Four settings drop whole issues:
+
+| Setting | Effect when restrictive |
+|---|---|
+| accessibility standard | issues whose `tags` fall outside the selected ruleset are dropped (`all` disables this) |
+| best practices | `isBestPractice` issues are dropped when disabled |
+| advanced rules | `isAdvanced` issues are dropped when disabled |
+| needs review | `isNeedsReview` issues are dropped when disabled |
+
+This filter runs on **guided-test issues too**, not just axe issues — so an empty `issues` array from a guided test can mean the org filtered the findings out rather than that the test found nothing. The filtering is invisible in the response: there is no count of what was removed. When a result looks surprisingly clean, say that org settings may be narrowing it rather than asserting the page passes.
+
 ## Guided tests: `analyze` with `igtTools`
 
 Guided tests (Intelligent Guided Tests, IGT) run through **`analyze`**, not a separate tool. The standalone `igt` tool is deprecated — do not call it.
@@ -88,6 +101,8 @@ Every tool entry has the same shape. Check `status` first:
 Phased selection adds three more statuses on `interactive-elements` only — see "Phased selection" below.
 
 - **The issue count is `issues.length`.** `igtElements` is every element the test processed — an inventory, **not** a list of issues. Report entries with `analysisFailed: true` separately, as elements that could not be analyzed.
+
+  `igtElements` entries are a **trimmed** shape, not the raw element the engine saw: the server drops a large ML/undo overlay (`mlScratchpad`, `original*`, `box`, `attributes`, ancestor/descendant id arrays, screenshot keys) before the response leaves it. What survives is `vnodeId`, `selector`, `tagName`, `role`, `accessibleName`, `states`, and `analysisFailed`. **Every one is optional** — a field is present only when the source element carried it, so `keyboard` entries are often little more than a selector while `interactive-elements` entries keep role, name and state. Do not assume a field exists; check before reading it.
 - **`terminatedReason`**, when present, means the run ended before every step completed, so results may be partial. It is not an error. Report it with the result:
 
 | tool | possible `terminatedReason` |
