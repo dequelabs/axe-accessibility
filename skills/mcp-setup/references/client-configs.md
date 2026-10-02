@@ -2,10 +2,14 @@
 
 Two independent choices: **distribution** (npm or Docker) and **auth** (API key or OAuth). Pick the shape, then drop it into the client block below. In every snippet the server is named `axe-mcp-server`, which is also the tool prefix (e.g. `mcp__axe-mcp-server__analyze`).
 
-- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist), tracking **`axe-mcp-server@^1.6.0`** and `@deque/axe-auth@^1.6.0`. Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
+- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist), tracking **`axe-mcp-server@^1.6.0`** and `@deque/axe-auth@^1.6.0`. Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx playwright@$(npm view 'axe-mcp-server@^1.6.0' dependencies.playwright) install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
 - **Docker:** public image `dequesystems/axe-mcp-server:latest` (anonymously pullable — no `docker login` required).
 
-> **Why every shape uses `^1.6.0`.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. A caret range picks up 1.x fixes and features automatically, while stopping a future 2.x from landing on a user who has not updated the plugin. If the server and this guidance ever disagree, the server wins: it generates its own tool descriptions and schemas at runtime, so the agent always sees the live shape. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
+> **Why the npm shapes use `^1.6.0`, and Docker can't.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. On npm a caret range picks up 1.x fixes and features automatically while stopping a future 2.x from landing on a user who has not updated the plugin, and the Playwright derivation uses the **same** range so the browser never gets installed for the wrong major.
+>
+> A Docker tag has no range equivalent, so the Docker shapes use `:latest` and are unbounded in both directions: a `docker pull` can cross into 2.x, and an already-pulled image never refreshes on its own, so a container can also sit far *behind* 1.6.0. Treat the Docker version as something the user manages, not something the config guarantees.
+>
+> If the server and this guidance ever disagree, the server wins: it generates its own tool descriptions and schemas at runtime, so the agent always sees the live shape. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
 > **Mutual exclusivity:** the server **fails at startup if both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set**. Every shape below passes exactly one credential — never both.
 

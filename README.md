@@ -28,10 +28,10 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
     **Install a Chromium the server supports.** A bare `npx playwright install chromium` resolves to Playwright's latest, which can install a revision the server doesn't support. Derive the version from the server package instead:
 
     ```sh
-    npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
+    npx playwright@$(npm view 'axe-mcp-server@^1.6.0' dependencies.playwright) install chromium
     ```
 
-    If a scan ever fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that exact command — it names the version the running server expects. See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for Linux system-library notes.
+    The `^1.6.0` must match the range the MCP config runs. An unqualified `npm view axe-mcp-server …` reports the **`latest`** tag's Playwright, which goes wrong the day a 2.x ships: the launcher would still be on 1.x while the browser install followed 2.x. If a scan ever fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that exact command — it names the version the running server expects. See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for Linux system-library notes.
   - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config calls `npx @deque/axe-auth`).
 

@@ -18,7 +18,12 @@ Ask which to use (`AskUserQuestion`). **Recommend npm for local development** �
 - **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@^1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
 - **Docker** — runs as a container from `dequesystems/axe-mcp-server:latest`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
 
-Both track **`^1.6.0`**: 1.x releases are picked up automatically on the next start, and a future 2.x cannot land on a user who has not updated the plugin. This guidance documents server 1.6.0's response shapes; within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree. Keep the `^1.6.0` range in any config you write.
+The two distributions version differently, and the difference matters:
+
+- **npm tracks `^1.6.0`.** 1.x releases arrive automatically on the next start, and a 2.x cannot land on a user who has not updated the plugin. Keep the `^1.6.0` range in any npm config you write.
+- **Docker uses `:latest`, which is unbounded.** A tag has no range equivalent, so a `docker pull` can cross into 2.x. It also does not refresh on its own — an already-pulled image stays put until someone pulls again, so Docker users can sit *behind* 1.6.0 as easily as they can jump ahead of it.
+
+This guidance documents server 1.6.0's response shapes. Within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree.
 
 Verify the chosen prerequisite before writing config:
 
@@ -27,10 +32,10 @@ Verify the chosen prerequisite before writing config:
   **Pin Playwright to the version the server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Derive it from the server package, then install:
 
   ```sh
-  npx playwright@$(npm view axe-mcp-server dependencies.playwright) install chromium
+  npx playwright@$(npm view 'axe-mcp-server@^1.6.0' dependencies.playwright) install chromium
   ```
 
-  If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
+  The `^1.6.0` here must match the range in the MCP config. Querying unqualified `axe-mcp-server` reads the **`latest`** tag instead, which installs a browser for the wrong major once a 2.x ships. If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
 > **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
