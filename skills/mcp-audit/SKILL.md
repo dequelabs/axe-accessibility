@@ -1,18 +1,19 @@
 ---
 name: mcp-audit
-description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", "audit keyboard accessibility", or runs /axe-accessibility:mcp-audit. It drives the Axe MCP analyze (and optional keyboard igt) -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit.
+description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", "audit keyboard accessibility", "audit and fix my modal", or runs /axe-accessibility:mcp-audit. It drives the Axe MCP analyze -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit, plus guided tests (keyboard, interactive elements, modal) when the user asks for them.
 argument-hint: "<url> [max-rounds] (default url: detected localhost, default rounds: 5)"
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
 # Run the accessibility audit loop
 
-Take a page from "has violations" to "zero violations" by iterating the Axe MCP workflow and applying real code fixes each round. This skill assumes the Axe MCP Server is already connected (`/axe-accessibility:mcp-setup`) and the `analyze`, `igt`, and `remediate` tools are available.
+Take a page from "has violations" to "zero violations" by iterating the Axe MCP workflow and applying real code fixes each round. This skill assumes the Axe MCP Server is already connected (`/axe-accessibility:mcp-setup`) and the `analyze` and `remediate` tools are available. (Ignore a standalone `igt` tool if the server lists one — it is deprecated; guided tests run through `analyze`.)
 
 ## Inputs
 
 - **URL** (`$1`): the full URL to audit (scheme + host + port + path). If omitted, detect a running dev server: check `package.json` scripts and common ports (3000, 5173, 8080, 4321) and confirm the URL with the user before scanning. Never scan a partial path.
 - **Max rounds** (`$2`): iteration cap, default **5**. The loop stops at zero violations or when this cap is reached, whichever comes first.
+- **Guided tests**: only those the user's request names or clearly implies — "audit keyboard accessibility" means `keyboard`, "fix my modal" means `modal`, "check accessible names on the controls" means `interactive-elements`. A plain "audit this page" means **none**. Guided tests consume credits; see "Guided tests" below.
 
 Reaching the page:
 
@@ -24,7 +25,7 @@ Reaching the page:
 
 Repeat until zero violations or the round cap:
 
-1. **Analyze.** Call `analyze` with the full URL. Record the top-level `pageUrl` and the issue list from the response's **`data`** array (not `issues`). If zero issues on round 1, report "already clean" and stop.
+1. **Analyze.** Call `analyze` with the full URL. Record the top-level `pageUrl` and the issue list from the response's **`data`** array (not `issues`). On a round that runs guided tests, `data` is `{ axe, igt }` instead — take the axe issues from `data.axe` and read guided-test issues as described below. If zero issues on round 1, report "already clean" and stop.
 2. **Triage before remediating.** Keep every issue instance — do **not** collapse issues that share a rule. Remediation guidance is generated per issue and tailored to the element sent, and one rule covers wildly different situations (three `color-contrast` violations on a disabled control, a badge, and text over a hero image need three different fixes). Separate the list by flag instead:
    - `isAdvanced: true` — AI/computer-vision finding, probabilistic. **Confirm it against the actual code or UI before remediating.** A genuine false positive should be reported, not fixed.
    - `isNeedsReview: true` — needs human judgment; surface to the user rather than auto-fixing when the call is a design decision.
@@ -37,24 +38,39 @@ Repeat until zero violations or the round cap:
    - `id` = a unique string you invent per issue (e.g. `color-contrast-0`) — required, used to correlate results back
    - `pageUrl` = the analyze response's `pageUrl`
    - `rule` = issue `rule`
-   - `elementHtml` = issue `source`
-   - `remediation` = issue `summary` + `description` + `helpText`
+   - `elementHtml` = issue `source` — **never empty**. One empty `elementHtml` fails the whole batch, and modal guided-test issues arrive with `source: ""`, so rebuild those from `selector` first.
+   - `remediation` = issue `summary` + `description` + `helpText` (guided-test issues: `summary` + `help` + `aiReasoning` when non-null)
 
    Do **not** pass the issue's own `remediation` field — it is an object of raw axe check data, not the string this parameter expects.
+
+   If the response is `data.upgradeRequired: true` instead of a results array, the account is on the free tier: relay `data.message`, stop the loop, and report the scan's findings without fixes.
 4. **Apply fixes to source.** Correlate each result back by `id` and check its `status` — a batch can partially fail, and a failed entry carries `error` instead of `remediation`. For each success, locate the responsible code (use Grep/Glob to find the component rendering the element) and apply the guidance. `code_fix` is a suggested snippet derived only from the element HTML sent — adapt it to the real component rather than pasting it. When several issues turn out to share one component, fix the root cause there rather than patching each call site — but note that this is a conclusion about *where the edit goes*, reached after reading the per-issue guidance. It is not a reason to have sent fewer issues. Apply image-alt and other judgment-heavy rules per the conventions in the `mcp-usage` skill's `references/rule-tips.md`.
 5. **Re-analyze (verify).** Re-run `analyze` on the same URL. If zero, stop and report success. Otherwise continue to the next round with the remaining issues.
 
 Track issue counts per round so progress is visible (e.g. `round 1: 7 -> round 2: 2 -> round 3: 0`).
 
-## Optional keyboard pass
+## Guided tests (only when requested)
 
-`analyze` cannot see focus order, focus traps, or focus visibility. When the page has interactive UI (menus, dialogs, custom widgets, forms), run a keyboard pass once the automated violations are clean:
+`analyze` alone cannot see focus order, focus traps, focus visibility, whether a control's name/role/state is right, or how a modal handles focus. Guided tests can, but they use AI and **consume credits**. So run them **only** when the user's request asks for what they cover (see Inputs). Never add them because the page "looks interactive". If the page clearly warrants one the user didn't ask for, mention it in the final report as a suggestion, with its cost.
+
+Run the requested tests on **round 1**, in the same call as the axe scan, so their issues join that round's batch:
 
 ```
-igt({ url, igtTools: ["keyboard"] })
+analyze({ url, igtTools: ["keyboard"] })
+analyze({ url, igtTools: ["modal"], modalTriggerSelector: "<selector the user gave>" })
 ```
 
-Read issues from `data.keyboard.issues`, and check `data.keyboard.status` plus any `terminatedReason` before trusting coverage. These issues have a **different shape** — `help`, `summary`, `impact`, `rule`, `selector`, `source`, `manifestGuide`, `aiReasoning`, with no `description`/`helpText` — so map `remediation` from `summary` + `help` + `aiReasoning`. Their `rule` values are IGT IDs (`keyboard-inaccessible`, `focus-indicator-missing`, `focus-on-hidden-item`, `contrast-link-infocus-4.5-1`), not axe-core rules; pass them through as-is. They can be batched into the same `remediate` call as `analyze` issues.
+For `modal`, use a trigger or modal selector the user named — ask if they did not. Without a trigger, dismissal and focus restoration go untested (`terminatedReason: "dismissibility-unavailable"`).
+
+Read the results in this order:
+
+1. **`data.igt.upgradeRequired === true`** — free tier. Relay `data.igt.message`, continue the loop on `data.axe` alone, and say guided tests were not run.
+2. **Each `data.igt.<tool>.status`** — `"error"` means report "the `<tool>` test failed: `<error>`" and carry on. `"complete"` means use its `issues` (count with `issues.length`, not `igtElements`).
+3. **`terminatedReason`** — results may be partial. After a `keyboard-trap`, elements past the trap were never tested. After `insufficient-credits`, stop running guided tests.
+
+Guided-test issues have a **different shape** — `help`, `summary`, `impact`, `rule`, `selector`, `source`, `manifestGuide`, `aiReasoning`, with no `description`/`helpText` — so map `remediation` from `summary` + `help` + `aiReasoning`. Their `rule` values are IGT IDs (`keyboard-inaccessible`, `aria-name-missing-incorrect`, `focus-modal-none`, ...); pass them through as-is. Batch them into the **same** `remediate` call as the axe issues.
+
+**Verification rounds use a plain `analyze`**, with no `igtTools`. Re-running the guided tests costs credits again, so do it once at the end, and only if the user wants the guided findings re-checked — ask before doing it. Report guided-test results by tool in the final summary, including any that errored, terminated early, or were tier-locked.
 
 ## Stopping and reporting
 
@@ -65,8 +81,8 @@ Read issues from `data.keyboard.issues`, and check `data.keyboard.status` plus a
 ## Guardrails
 
 - Apply only accessibility fixes guided by `remediate`. Do not refactor unrelated code or change behavior beyond what the violation requires.
-- Re-running `analyze` is cheap (no remediation credits); re-running `remediate` for an already-fixed element wastes credits — only remediate issues present in the latest scan.
-- Do not request `screenshot` on the loop's scans. It costs significant tokens per round and adds nothing to remediation; use it only if the user explicitly wants to see the page.
+- Re-running a plain `analyze` is free. Re-running `remediate` for an already-fixed element, or re-running guided tests, spends credits — only remediate issues present in the latest scan, and only re-run guided tests when asked.
+- Do not request `screenshot` on the loop's scans. It costs significant tokens per round and adds nothing to remediation; use it only if the user explicitly wants to see the page (and use `save`/`saveTo` with `inline: false` if they only want the file).
 - After the loop, briefly summarize the code changes made so the user can review them before committing.
 
 For the full issue shapes, field mapping, and rule-specific remediation nuances, the `mcp-usage` skill's references apply directly.

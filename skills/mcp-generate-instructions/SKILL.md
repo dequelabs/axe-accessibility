@@ -1,6 +1,6 @@
 ---
 name: mcp-generate-instructions
-description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-accessibility:mcp-generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the Axe MCP analyze/igt -> remediate -> verify workflow.
+description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-accessibility:mcp-generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the Axe MCP analyze -> remediate -> verify workflow, including on-request guided tests.
 argument-hint: "[targets] (optional: claude | copilot | cursor | agents | all)"
 allowed-tools: AskUserQuestion, Bash, Glob, Read, Edit, Write
 ---
@@ -32,7 +32,7 @@ Keep these intact across all targets — they are the parts that change agent be
 - **the `remediate` batching rule** (one call per scan, `id` on every issue) — the most common cause of failed tool calls
 - **the field mapping**, including reading issues from `response.data` and never passing an issue's own `remediation` object into the `remediation` parameter
 - the deterministic (`isAdvanced: false`) vs. AI-derived (`isAdvanced: true`) trust distinction
-- the `igt` keyboard section and its different issue shape
+- the guided-tests section: run through `analyze`'s `igtTools` **only when asked**, the upgrade-prompt check, the different issue shape, and the empty-`source` rule
 - the credit-aware note and the image-alt guidance
 
 ## Step 2a — Refresh outdated sections
@@ -43,10 +43,11 @@ When updating a file that already has an axe workflow section, check for guidanc
 - a flat `remediate({pageUrl, rule, elementHtml, remediation})` signature with no `id` and no `issues` array
 - reading issues from `response.issues` instead of `response.data`
 - `remediation` mapped from only `description` + `helpText`, with no mention of `summary`
-- no mention of `igt`
+- calls to the standalone `igt` tool, e.g. `igt({ url, igtTools: ["keyboard"] })` or reading `data.keyboard.issues` — guided tests now run through `analyze`, with results at `data.igt.<tool>`
+- an instruction to run keyboard/guided tests proactively "for interactive UI" — guided tests consume credits and must run only on request
 - a blanket claim that all findings are deterministic / zero-false-positive
 
-Replace those in place — leaving them causes calls the server will reject.
+Replace those in place — leaving them causes calls the server will reject, or spends credits the user did not ask to spend.
 
 ## Step 3 — Write without clobbering
 

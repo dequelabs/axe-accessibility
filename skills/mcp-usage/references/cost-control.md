@@ -1,6 +1,17 @@
 # Economizing on remediation credits
 
+Two things spend AI credits: **`remediate`** and **guided tests** (`analyze` with `igtTools`). A plain `analyze` is free, so verifying is always cheap.
+
 `remediate` charges **per issue in the batch**, so a 180-issue page costs about 15x a 12-issue one. The default is still to send every instance and get per-issue guidance. This file covers what to do when the user asks to spend less — or when a scan is large enough that you should ask them first.
+
+## Guided tests are a separate spend
+
+Every `analyze` call that includes `igtTools` consumes credits for each guided test it runs, on top of whatever `remediate` later costs for the issues they find.
+
+- **Run only the tests the user asked for.** "Check keyboard access" is `["keyboard"]`. Adding `interactive-elements` and `modal` "while you're there" triples the guided-test spend for answers nobody requested.
+- **Don't put guided tests in verification rounds by default.** Verify fixes with a plain `analyze` (free). Re-run a guided test only when the user wants that test re-checked, and say it costs credits again.
+- **Narrow `interactive-elements` before it spends.** `includeSelectors` limits it to the controls the user cares about. On a control-heavy page, **phased selection** (`interactive: true`, then `sessionID` + `selectedIDs`) lets the user pick elements *before* any AI analysis runs. That is the server's own credit-saving path for this test.
+- **`terminatedReason: "insufficient-credits"`** means the allocation ran out mid-run. Results are partial. Report it; do not retry.
 
 ## When to economize
 
@@ -32,7 +43,7 @@ Join the `selector` array with a separator first so a frame/shadow path stays di
 | `target-size` | 23 | 23 | **19** |
 | `link-name` | 8 | 8 | **6** |
 | `image-alt` | 4 | 4 | **2** |
-| `focus-on-hidden-item` (igt) | 7 | 7 | **4** |
+| `focus-on-hidden-item` (keyboard guided test) | 7 | 7 | **4** |
 
 Same-normalized-path issues are the same element in the same structural position across repeated siblings — i.e. one component rendered N times, which is exactly the group whose fix is shared.
 

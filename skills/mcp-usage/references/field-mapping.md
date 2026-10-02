@@ -1,12 +1,12 @@
 # Tool output -> remediate field mapping
 
-All shapes below are the actual wire format of Axe MCP Server 1.4.0.
+All shapes below are the wire format of Axe MCP Server 1.6.0, the release this guidance was written against. The bundled config tracks `^1.6.0`, so a running 1.x server may be newer. The server generates its own tool descriptions and schemas at runtime, so those are authoritative if they ever disagree with this file — check `serverInfo.version` from `initialize` to see what is running.
 
 ## `analyze` response
 
 ```
 {
-  "data": [ ...issues ],          // NOTE: issues live under `data`, not `issues`
+  "data": [ ...issues ],          // NOTE: issues live under `data`, not `issues`. With `igtTools`, `data` is `{ axe, igt }` — see "Guided tests" below
   "pageUrl": "https://example.com",
   "advancedRules": { "value": "balanced", "source": "org_default" }
 }
@@ -16,7 +16,7 @@ All shapes below are the actual wire format of Axe MCP Server 1.4.0.
 
 Note that on accounts where Advanced Rules are not enabled, the server also **removes `advancedRules` from `analyze`'s published input schema**, so the parameter is absent from the tool definition and passing it is ignored without error.
 
-When `analyze` is called with `screenshot: { format: "png" | "jpeg" }`, the response also carries an **MCP image content block** beside this JSON. The image shows the viewport immediately before `axe.run()` started, so on SPAs it can disagree with what axe actually scanned — treat it as context, not evidence about which elements were tested.
+When `analyze` is called with `screenshot` set (e.g. `{}` or `{ format: "jpeg" }`), the response also carries an **MCP image content block** beside this JSON. The image shows the viewport immediately before `axe.run()` started, so on SPAs it can disagree with what axe actually scanned — treat it as context, not evidence about which elements were tested. With `save: true` or `saveTo`, the written path is reported in a top-level `messages` array (`"Screenshot saved to /abs/path.png"`); with `inline: false` on top of a successful save, the image block is omitted.
 
 ### Shape of an `analyze` issue
 
@@ -39,33 +39,134 @@ Every issue carries all of these fields:
 
 > **The `remediation` trap.** The issue's own `remediation` is axe check data (`{any, all, none}`). The `remediation` field `remediate` expects is a **string you compose**. Passing the object through is the most common failure. Compose the string from `summary` + `description` + `helpText`.
 
-## `igt` response
+### Org settings can remove issues before you see them
+
+The server applies the organization's scan settings to the issue list before returning it, so a clean result is not always a clean page. Four settings drop whole issues:
+
+| Setting | Effect when restrictive |
+|---|---|
+| accessibility standard | issues whose `tags` fall outside the selected ruleset are dropped (`all` disables this) |
+| best practices | `isBestPractice` issues are dropped when disabled |
+| advanced rules | `isAdvanced` issues are dropped when disabled |
+| needs review | `isNeedsReview` issues are dropped when disabled |
+
+This filter runs on **guided-test issues too**, not just axe issues — so an empty `issues` array from a guided test can mean the org filtered the findings out rather than that the test found nothing. The filtering is invisible in the response: there is no count of what was removed. When a result looks surprisingly clean, say that org settings may be narrowing it rather than asserting the page passes.
+
+## Guided tests: `analyze` with `igtTools`
+
+Guided tests (Intelligent Guided Tests, IGT) run through **`analyze`**, not a separate tool. The standalone `igt` tool is deprecated — do not call it.
+
+```
+analyze({ url, igtTools: ["keyboard", "interactive-elements", "modal"] })
+```
+
+Passing `igtTools` changes the shape of `data` from an array to an object:
 
 ```
 {
-  "data": { "keyboard": { "status": "complete", "issues": [...], "igtElements": [...] } },
-  "pageUrl": "https://example.com"
+  "data": {
+    "axe": [ ...analyze issues ],                    // same issues as a plain scan
+    "igt": {
+      "keyboard":             { "status": "complete", "issues": [...], "igtElements": [...] },
+      "interactive-elements": { "status": "complete", "issues": [...], "igtElements": [...] },
+      "modal":                { "status": "complete", "issues": [...], "igtElements": [...] }
+    }
+  },
+  "pageUrl": "http://localhost:3000/",
+  "advancedRules": { "value": "balanced", "source": "org_default" }
 }
 ```
 
-`terminatedReason` appears on the tool block when the run stopped early (absent or `null` on a clean run). `igtElements` is a large inventory of every element walked — useful for tab-order questions, but it is what makes `igt` payloads huge; ignore it unless you need it.
+There is one `data.igt` entry per tool you requested, keyed by tool name. Without `igtTools`, `data` is the plain array described above — so check `Array.isArray(data)` before reading it.
 
-### Shape of an `igt` issue
+### Check for the upgrade prompt first
 
-**Different from `analyze` issues — fewer fields, and no `description`/`helpText`:**
+On a free-tier account, `data.igt` is **not** keyed by tool. It is a single upgrade prompt:
 
-- `rule` — an **IGT** rule ID, not an axe-core one: `keyboard-inaccessible`, `focus-indicator-missing`, `focus-on-hidden-item`, `contrast-link-infocus-4.5-1`.
-- `help` — short statement of the failure ("Control text lacks 4.5:1 contrast ratio on hover or focus").
+```
+"igt": { "upgradeRequired": true, "tool": "igt", "reason": "enterprise-feature", "message": "...", "upgradeUrl": "https://axe.deque.com" }
+```
+
+Test `data.igt.upgradeRequired === true` **before** reading any tool key. When it is set, relay `data.igt.message` to the user and do not report guided-test results — there are none. `data.axe` is unaffected and should be processed normally.
+
+### Then read each tool's entry independently
+
+Every tool entry has the same shape. Check `status` first:
+
+| `status` | Carries | What to do |
+|---|---|---|
+| `"complete"` | `issues`, `igtElements`, optional `terminatedReason` | Read the issues. |
+| `"error"` | `error` (string) | Report "the `<tool>` test failed: `<error>`". It does **not** make the call an error and does not affect `data.axe` or the other tools. |
+
+Phased selection adds three more statuses on `interactive-elements` only — see "Phased selection" below.
+
+- **The issue count is `issues.length`.** `igtElements` is every element the test processed — an inventory, **not** a list of issues. Report entries with `analysisFailed: true` separately, as elements that could not be analyzed.
+
+  `igtElements` entries are a **trimmed** shape, not the raw element the engine saw: the server drops a large ML/undo overlay (`mlScratchpad`, `original*`, `box`, `attributes`, ancestor/descendant id arrays, screenshot keys) before the response leaves it. What survives is `vnodeId`, `selector`, `tagName`, `role`, `accessibleName`, `states`, and `analysisFailed`. **Every one is optional** — a field is present only when the source element carried it, so `keyboard` entries are often little more than a selector while `interactive-elements` entries keep role, name and state. Do not assume a field exists; check before reading it.
+- **`terminatedReason`**, when present, means the run ended before every step completed, so results may be partial. It is not an error. Report it with the result:
+
+| tool | possible `terminatedReason` |
+|---|---|
+| any | `insufficient-credits`, `subscription-missing` |
+| `keyboard` | `keyboard-trap` — a focus trap halted the run |
+| `interactive-elements` | (none of its own) |
+| `modal` | `modal-not-detected`, `modal-dismiss-failed`, `trigger-not-resolved`, `modal-selector-not-resolved`, `modal-selector-not-visible`, `modal-fallback-not-resolved`, `modal-fallback-not-visible`, and the **expected** `dismissibility-unavailable` / `focus-restoration-unavailable` |
+
+A `modal` run without `modalTriggerSelector` **always** ends with `dismissibility-unavailable`. That is expected, not a failure — but it means an empty `issues` list says nothing about dismissal or focus restoration. Report it as a structural check only.
+
+If the organization has machine learning disabled in its settings, every requested tool comes back as `status: "error"` explaining that guided tests require ML.
+
+### Shape of a guided-test issue
+
+All three tools emit the same issue shape. **It differs from `analyze` issues — fewer fields, and no `description`/`helpText`:**
+
+- `rule` — an **IGT** rule ID, not an axe-core one. Pass it to `remediate` unchanged. Known IDs (not exhaustive):
+  - `keyboard`: `keyboard-inaccessible`, `focus-indicator-missing`, `focus-on-hidden-item`, `contrast-link-infocus-4.5-1`, `keyboard-trap`
+  - `interactive-elements`: `aria-role-missing`, `aria-name-missing-incorrect`
+  - `modal`: `custom-dialog`, `focus-modal-none`, `focus-modal-moves-outside`
+- `help` — short statement of the failure ("Keyboard focus is not placed on opened modal").
 - `summary` — the fuller description of what is wrong.
-- `source` — the element's HTML. Maps to `elementHtml`.
+- `source` — the element's HTML. Maps to `elementHtml`. **Can be an empty string — see the warning below.**
 - `selector` — array, as with `analyze`.
 - `impact` — same scale.
-- `manifestGuide` — which IGT produced it, e.g. `"keyboard"`.
+- `manifestGuide` — which guided test produced it: `"keyboard"`, `"interactive-elements"`, or **`"aria-modal"`** for the modal tool (not `"modal"`).
 - `aiReasoning` — AI explanation of why this is a problem, or `null`. Often the most useful text for `remediate`; fold it in when non-null. It may openly reason about DOM it cannot fully resolve — treat it as a lead to confirm, not fact.
+
+  **Expect it to be `null` often, and never read anything into its absence.** Two independent reasons it goes missing:
+
+  1. **Only three rules ever populate it** — `aria-role-missing`, `keyboard-inaccessible`, and `keyboard-trap`. Every other guided-test rule, including all of the `modal` rules and `focus-indicator-missing`, is deterministic and resolves to `null` by construction.
+  2. **MCP runs request a lean AI response upstream.** The analysis service makes its reasoning fields optional when the caller asks for the trimmed response, which is what the MCP path does. The server builds `aiReasoning` by collapsing the rule's AI *suggestion* and *reasoning*, so on a lean run it can degrade to the suggestion alone, or to `null` even for one of the three rules above.
+
+  So a `null` `aiReasoning` means "no explanation came back", never "the AI had no concerns". Do not report its absence as evidence the element is fine, and do not retry the scan to try to obtain it.
+
+> **Empty `source` breaks the whole batch.** `modal` issues come back with `source: ""`. `remediate` rejects the **entire call** — not just that entry — if any `elementHtml` is empty (`issues[N].element_html must be a non-empty string`). Before batching, for every issue whose `source` is empty, find the element at its `selector` in the source code (or the rendered DOM) and send that element's real HTML as `elementHtml`. For a modal, send the dialog container with its contents. If you cannot find it, leave that issue out of the batch and report it separately. Never send `""`.
+
+`igtElements` entries are small objects — `vnodeId`, `selector`, `tagName`, and, when known, `role`, `accessibleName`, `states`, `analysisFailed`. They help answer tab-order and inventory questions. Ignore them otherwise.
+
+### Phased selection (`interactive-elements` only)
+
+Phased selection lets the user choose which elements the `interactive-elements` test analyzes, so credits are not spent on elements they do not care about. It is available only when `igtTools` is **exactly** `["interactive-elements"]`.
+
+1. `analyze({ url, igtTools: ["interactive-elements"], interactive: true })` — runs the axe scan and detects candidates **without** AI analysis:
+
+   ```
+   "igt": { "interactive-elements": {
+     "status": "needs_selection",
+     "sessionID": "...",
+     "candidates": [ { "vnodeId": 3, "role": "link", "name": "Home", "state": [], "selector": [...] }, ... ],
+     "componentGroups": { "intelligent": [ { "id": 0, "role": "link", "vnodeIds": [3, 4, 5] } ], "role": [...] }
+   } }
+   ```
+
+   Show the candidates to the user and let them choose. `componentGroups` groups repeated components so the user can pick a whole group at once.
+2. `analyze({ url, igtTools: ["interactive-elements"], sessionID, selectedIDs: [<vnodeId>, ...] })` — resumes the same paused run and returns `status: "complete"` for exactly those elements. **`data.axe` is absent on this call**, because the axe results came back on call 1. Every parameter other than `url`, `igtTools`, `sessionID`, and `selectedIDs` is ignored.
+
+- `status: "invalid_selection"` (with `unknownIDs`) — a selected ID was not offered. The session stays paused; retry with offered IDs only.
+- `status: "session_expired"` — the session is unknown, has timed out (a few minutes idle), or **was already resumed**. Each session can be resumed once. Start over with `interactive: true`.
 
 ## Building a `remediate` call
 
-One call, all issues from one scan, `id` on each:
+One call, all issues from one scan — `analyze` issues and guided-test issues together — `id` on each:
 
 ```
 remediate({
@@ -74,8 +175,9 @@ remediate({
       id:          "<unique string you invent, e.g. rule + counter>",
       pageUrl:     <response .pageUrl>,          // optional but recommended
       rule:        <issue.rule>,
-      elementHtml: <issue.source>,
+      elementHtml: <issue.source>,                // never "" — see the empty-source warning above
       remediation: <issue.summary> + " " + <issue.description> + " " + <issue.helpText>
+                   // guided-test issue: <issue.summary> + " " + <issue.help> + " " + <issue.aiReasoning, when non-null>
     },
     ...up to 25
   ]
@@ -94,7 +196,9 @@ Response:
 }
 ```
 
-Correlate by `id`, not by position. Check `status` on every entry — batches can partially fail. `code_fix` is a suggested snippet derived only from the `elementHtml` you sent; adapt it to the real component rather than pasting it.
+Correlate by `id`, not by position. Check `status` on every entry — batches can partially fail.
+
+On a free-tier account, `remediate` returns an upgrade prompt **instead of the array**: `{ "data": { "upgradeRequired": true, "tool": "remediate", "reason": "enterprise-feature", "message": "...", "upgradeUrl": "..." } }`. Check `data.upgradeRequired === true` before iterating, and relay `data.message` to the user. `code_fix` is a suggested snippet derived only from the `elementHtml` you sent; adapt it to the real component rather than pasting it.
 
 ## Worked example
 
@@ -171,6 +275,31 @@ Correlate by `id`, not by position. Check `status` on every entry — batches ca
 
 4. Apply each `code_fix` to the responsible source file (adapting to the real component), then re-run `analyze` on the same URL to confirm the issues are gone.
 
+### Guided-test variant
+
+When the user asked for a modal check, `analyze({ url, igtTools: ["modal"], modalTriggerSelector: "#open-modal" })` returns, among others:
+
+```json
+{ "rule": "focus-modal-none", "help": "Keyboard focus is not placed on opened modal",
+  "summary": "When the modal dialog is activated, keyboard focus is not placed on/in it.",
+  "impact": "serious", "selector": ["body > div#overlay:nth-of-type(1) > div#dlg.modal:nth-of-type(1)"],
+  "source": "", "manifestGuide": "aria-modal", "aiReasoning": null }
+```
+
+`source` is empty, so find `#dlg` in the code and send its real HTML. It goes in the **same** `remediate` batch as the `data.axe` issues:
+
+```json
+{
+  "id": "focus-modal-none-0",
+  "pageUrl": "http://localhost:3000/",
+  "rule": "focus-modal-none",
+  "elementHtml": "<div id=\"dlg\" class=\"modal\"><h2>Are you sure?</h2><p>This cannot be undone.</p><button>Confirm</button></div>",
+  "remediation": "When the modal dialog is activated, keyboard focus is not placed on/in it. Keyboard focus is not placed on opened modal."
+}
+```
+
+Verify with the same `analyze` call — the same `igtTools`, which costs credits again — only if the user wants the guided test re-checked. Otherwise, verify the `data.axe` side with a plain `analyze`.
+
 ## Common mistakes
 
 - **Calling `remediate` once per issue.** It is batched — one call per scan, up to 25 issues. (Credits are charged per issue either way, so this wastes round-trips rather than credits, but it contradicts the tool's contract.)
@@ -180,5 +309,9 @@ Correlate by `id`, not by position. Check `status` on every entry — batches ca
 - **Reading issues from `response.issues`.** They are under `response.data`.
 - **Using `selector` for `elementHtml`.** `remediate` needs the element's HTML (`source`); `selector` is an array path anyway.
 - **Ignoring per-issue `status`.** A batch can partially fail; a failed entry has `error`, not `remediation`.
-- **Mapping `igt` issues as if they were `analyze` issues.** They have no `description`/`helpText`; use `help` + `summary` + `aiReasoning`.
+- **Mapping guided-test issues as if they were `analyze` issues.** They have no `description`/`helpText`; use `summary` + `help` + `aiReasoning`.
+- **Sending a guided-test issue with an empty `source`.** One empty `elementHtml` fails the whole `remediate` call. Rebuild it from `selector` first.
+- **Reading `data.igt.keyboard` without checking `data.igt.upgradeRequired`.** On free tier there is no `keyboard` key; relay the upgrade message instead.
+- **Treating `igtElements.length` as the issue count.** It is the processed-element inventory; the count is `issues.length`.
+- **Calling the standalone `igt` tool.** It is deprecated. Pass `igtTools` to `analyze`.
 - Passing a relative path or a URL without scheme/port to `analyze` — always pass the full URL.
