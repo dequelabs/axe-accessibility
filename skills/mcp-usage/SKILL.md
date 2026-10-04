@@ -17,8 +17,8 @@ The tools may appear under a client-specific prefix (for example `mcp__axe-mcp-s
 ### When this guidance and the server disagree, the server wins
 
 The shapes and parameters described here are those of **server 1.6.0**. The bundled
-config tracks `axe-mcp-server@^1.6.0`, so the running server may be a newer 1.x
-release. That matters because the server builds its own tool descriptions and input
+config pins `axe-mcp-server@1.6.0`, but a hand-written or Docker config may run a
+different release. That matters because the server builds its own tool descriptions and input
 schemas at startup, from the account's entitlements — `advancedRules` and `igtTools`
 are both dropped from the published schema when unavailable, and the `igtTools` enum
 narrows to the tools the account actually has.
@@ -146,7 +146,7 @@ So `{ "value": "disabled", "source": "unavailable" }` or `"tier_locked"` means t
 
 **Pass `advancedRules` when the user asks for it.** A request like "run a11y analysis with thorough advanced rules" or "scan with advanced rules disabled" maps directly onto this parameter.
 
-**It is conditionally advertised.** The server removes `advancedRules` from `analyze`'s published schema when Advanced Rules are not enabled for the caller — so on an unentitled or free-tier account the parameter is absent from the tool definition and passing it is silently ignored (no validation error, because the field is not in the schema). `igtTools` works the same way: its enum lists only the guided tests the account is entitled to, and the whole parameter disappears when none are. **Rule out a stale server before concluding it is entitlement.** Absence has two causes: the account is not entitled, or the server predates the feature (`igtTools` needs 1.5.0+). The npm distribution tracks `^1.6.0` and updates on each start, so there it is almost always entitlement. Docker does not — `:latest` never refreshes an already-pulled image, so a container can sit on a pre-1.5 release indefinitely. Check `serverInfo.version` from the MCP `initialize` response against the feature's minimum version first; only on a current server does absence mean the account lacks the entitlement.
+**It is conditionally advertised.** The server removes `advancedRules` from `analyze`'s published schema when Advanced Rules are not enabled for the caller — so on an unentitled or free-tier account the parameter is absent from the tool definition and passing it is silently ignored (no validation error, because the field is not in the schema). `igtTools` works the same way: its enum lists only the guided tests the account is entitled to, and the whole parameter disappears when none are. **Rule out a stale server before concluding it is entitlement.** Absence has two causes: the account is not entitled, or the server predates the feature (`igtTools` needs 1.5.0+). The npm distribution is pinned to 1.6.0, so there it is almost always entitlement. Docker does not — `:latest` never refreshes an already-pulled image, so a container can sit on a pre-1.5 release indefinitely. Check `serverInfo.version` from the MCP `initialize` response against the feature's minimum version first; only on a current server does absence mean the account lacks the entitlement.
 
 **Reading a screenshot honestly:** the image is the page as it looked *the moment before* `axe.run()` started. On SPAs, re-renders, `useEffect` work, animations, and in-flight requests mean the DOM axe actually scanned can differ from the picture. Do not describe an element as visible-but-not-flagged based on the screenshot — that skew, not a missed violation, is the usual explanation.
 

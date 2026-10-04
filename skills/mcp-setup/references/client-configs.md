@@ -2,10 +2,10 @@
 
 Two independent choices: **distribution** (npm or Docker) and **auth** (API key or OAuth). Pick the shape, then drop it into the client block below. In every snippet the server is named `axe-mcp-server`, which is also the tool prefix (e.g. `mcp__axe-mcp-server__analyze`).
 
-- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist), tracking **`axe-mcp-server@^1.6.0`** and `@deque/axe-auth@^1.6.0`. Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx playwright@$(npm view 'axe-mcp-server@^1.6.0' dependencies.playwright) install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
+- **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist), pinned to **`axe-mcp-server@1.6.0`** and `@deque/axe-auth@1.6.0`. Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx -y playwright@1.62.1 install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
 - **Docker:** public image `dequesystems/axe-mcp-server:latest` (anonymously pullable — no `docker login` required).
 
-> **Why the npm shapes use `^1.6.0`, and Docker can't.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. On npm a caret range picks up 1.x fixes and features automatically while stopping a future 2.x from landing on a user who has not updated the plugin, and the Playwright derivation uses the **same** range so the browser never gets installed for the wrong major.
+> **Why the npm shapes pin exact versions, and Docker can't.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. An exact pin keeps the running server matched to that guidance and to what was reviewed, and the Playwright pin (`1.62.1`) is the version that server release depends on, so the browser always matches.
 >
 > A Docker tag has no range equivalent, so the Docker shapes use `:latest` and are unbounded in both directions: a `docker pull` can cross into 2.x, and an already-pulled image never refreshes on its own, so a container can also sit far *behind* 1.6.0. Treat the Docker version as something the user manages, not something the config guarantees.
 >
@@ -25,7 +25,7 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 {
   "type": "stdio",
   "command": "npx",
-  "args": ["-y", "axe-mcp-server@^1.6.0"],
+  "args": ["-y", "axe-mcp-server@1.6.0"],
   "env": { "AXE_API_KEY": "${AXE_API_KEY}" }
 }
 ```
@@ -36,7 +36,7 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@^1.6.0 token)\"; exec npx -y axe-mcp-server@^1.6.0"]
+  "args": ["-c", "unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@1.6.0 token)\"; exec npx -y axe-mcp-server@1.6.0"]
 }
 ```
 
@@ -46,15 +46,17 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 
 ### 3. npm, auth-agnostic (recommended — ships with the plugin)
 
-Serves both auth methods with one config — **npm only**; Docker needs shape 6. It clears any inherited `AXE_ACCESS_TOKEN` first, then passes only a freshly minted `AXE_ACCESS_TOKEN` if an OAuth session exists, otherwise leaves the inherited `AXE_API_KEY` in place.
+Serves both auth methods with one config — **npm only**; Docker needs shape 6. It clears any inherited `AXE_ACCESS_TOKEN` first, drops an empty `AXE_API_KEY`, then passes only a freshly minted `AXE_ACCESS_TOKEN` if an OAuth session exists, otherwise leaves `AXE_API_KEY` in place.
 
 ```json
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "unset AXE_ACCESS_TOKEN; T=\"$(npx -y @deque/axe-auth@^1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server@^1.6.0"]
+  "args": ["-c", "unset AXE_ACCESS_TOKEN; [ -n \"$AXE_API_KEY\" ] || unset AXE_API_KEY; T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server@1.6.0"]
 }
 ```
+
+The plugin's own `.mcp.json` is this shape plus `"env": { "AXE_API_KEY": "${user_config.api_key}" }`: in Claude Code the API key comes from the plugin's **Axe API key** option (stored in the system keychain), not from the shell, and an exported `AXE_API_KEY` is ignored. Left blank, the option arrives as an empty string, which the script unsets so OAuth works. Other clients have no plugin options, so this standalone shape reads `AXE_API_KEY` from the client's launch environment.
 
 ### 4. Docker + API key
 
@@ -72,7 +74,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@^1.6.0 token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
+  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
 }
 ```
 
@@ -82,7 +84,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "T=\"$(npx -y @deque/axe-auth@^1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
+  "args": ["-c", "T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
 }
 ```
 
@@ -173,9 +175,9 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 
 ### Either distribution
 
-- **401 / auth errors:** confirm `AXE_API_KEY` is exported in the client's launch environment, or that `npx -y @deque/axe-auth@^1.6.0 token` prints a token (re-run `login` if not).
+- **401 / auth errors:** with the Claude Code plugin, confirm the **Axe API key** option is filled in (`/config`); with any other client, confirm `AXE_API_KEY` is exported in the client's launch environment. For OAuth, confirm that `npx -y @deque/axe-auth@1.6.0 token` prints a token (re-run `login` if not).
 - **Server exits immediately at startup:** most often both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set. Under npm this happens silently via inherited environment — see the `unset` note above.
-- **OAuth token expired:** since 1.4.0 the error tells you what to do — re-authenticate with `npx -y @deque/axe-auth@^1.6.0 login` and restart the MCP server connection.
+- **OAuth token expired:** since 1.4.0 the error tells you what to do — re-authenticate with `npx -y @deque/axe-auth@1.6.0 login` and restart the MCP server connection.
 - **Long sessions:** if calls start failing after hours, restart the MCP server connection to force a token refresh.
 - **A newly enabled feature doesn't show up (e.g. `analyze` has no `advancedRules` parameter after Advanced Rules were turned on):** the server resolves feature flags **once at startup**, before it accepts a connection, and never emits `tools/list_changed`. So the advertised schema is fixed for the life of the process, and clients cache it on top of that. **Fully quit and relaunch the client** — in VS Code, "Restart Server" alone is not enough; a complete quit and relaunch is. Then start a new chat session, since the tool list handed to the model can be cached per session. Verify with `LOG_LEVEL=debug` and look for the `Fetched feature flags` line in the client's MCP output.
 - **`Selector did not match any element on the page`:** an `analyze` `selector` matched nothing, which fails the whole scan. Confirm the selector exists (or omit it) rather than guessing.

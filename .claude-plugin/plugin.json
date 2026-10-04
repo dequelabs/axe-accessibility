@@ -2,8 +2,9 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "axe-accessibility",
   "displayName": "Axe Accessibility",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Deque's accessibility toolkit for coding agents. Get accessible UI effortlessly - your agent builds, tests, and remediates accessibility in the loop, so it's never a separate, manual chore. Currently powers the Axe MCP Server scan -> remediate -> verify workflow, plus on-request guided tests for keyboard access, interactive elements, and modal dialogs; expanding over time.",
+  "icon": "./assets/icon.svg",
   "author": {
     "name": "Deque Systems",
     "email": "harris.schneiderman@deque.com",
@@ -20,5 +21,14 @@
     "wcag",
     "mcp",
     "remediation"
-  ]
+  ],
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "Axe API key",
+      "description": "Axe MCP Server API key from the Axe Account Portal (API Keys -> product \"Axe MCP Server\"). Leave blank if you sign in with OAuth (npx -y @deque/axe-auth@1.6.0 login).",
+      "sensitive": true,
+      "required": false
+    }
+  }
 }

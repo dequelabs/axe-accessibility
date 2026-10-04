@@ -5,8 +5,11 @@
       "command": "sh",
       "args": [
         "-c",
-        "unset AXE_ACCESS_TOKEN; T=\"$(npx -y @deque/axe-auth@^1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server@^1.6.0"
-      ]
+        "unset AXE_ACCESS_TOKEN; [ -n \"$AXE_API_KEY\" ] || unset AXE_API_KEY; T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then unset AXE_API_KEY; export AXE_ACCESS_TOKEN=\"$T\"; fi; exec npx -y axe-mcp-server@1.6.0"
+      ],
+      "env": {
+        "AXE_API_KEY": "${user_config.api_key}"
+      }
     }
   }
 }
