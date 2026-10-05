@@ -53,7 +53,7 @@ Ask which method to use (`AskUserQuestion`):
 
 1. Direct the user to create a key: **Axe Account Portal (https://axe.deque.com) -> API Keys -> ADD NEW API KEY -> product "Axe MCP Server"**, then copy it.
 2. Where the key goes depends on the client:
-   - **Claude Code with this plugin:** enter it in the plugin's **Axe API key** option — Claude Code asks when the plugin is enabled, and it can be changed later under `/config` (or `/plugin` → axe-accessibility). It is stored in the system keychain. The bundled config does **not** read an `AXE_API_KEY` exported in the shell, so don't tell these users to export one.
+   - **Claude Code with this plugin:** enter it in the plugin's **Axe API key** option — Claude Code asks when the plugin is enabled, and it can be changed later under `/plugin` (manage axe-accessibility) — sensitive options are not listed in `/config`. It is stored in the system keychain. The bundled config does **not** read an `AXE_API_KEY` exported in the shell, so don't tell these users to export one.
    - **Any other client, or a hand-written config:** export it where the client can read it: `export AXE_API_KEY="<key>"` (persist in shell profile).
 
    Never write the key into a committed file.

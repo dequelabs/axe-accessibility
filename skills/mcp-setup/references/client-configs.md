@@ -175,7 +175,7 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 
 ### Either distribution
 
-- **401 / auth errors:** with the Claude Code plugin, confirm the **Axe API key** option is filled in (`/config`); with any other client, confirm `AXE_API_KEY` is exported in the client's launch environment. For OAuth, confirm that `npx -y @deque/axe-auth@1.6.0 token` prints a token (re-run `login` if not).
+- **401 / auth errors:** with the Claude Code plugin, confirm the **Axe API key** option is filled in under `/plugin` (manage axe-accessibility — it is not in `/config`); with any other client, confirm `AXE_API_KEY` is exported in the client's launch environment. For OAuth, confirm that `npx -y @deque/axe-auth@1.6.0 token` prints a token (re-run `login` if not).
 - **Server exits immediately at startup:** most often both `AXE_API_KEY` and `AXE_ACCESS_TOKEN` are set. Under npm this happens silently via inherited environment — see the `unset` note above.
 - **OAuth token expired:** since 1.4.0 the error tells you what to do — re-authenticate with `npx -y @deque/axe-auth@1.6.0 login` and restart the MCP server connection.
 - **Long sessions:** if calls start failing after hours, restart the MCP server connection to force a token refresh.

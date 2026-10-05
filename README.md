@@ -57,7 +57,7 @@ Every package the plugin launches with `npx` is pinned to an exact version, so w
 
 Where the guidance and the server ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
-**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Move the `axe-mcp-server@` and `@deque/axe-auth@` pins in `.mcp.json`, `README.md`, the skills and `client-configs.md` together (`grep -rn "@1\.6\.0" .`), and update the Playwright pin to the new server's `npm view axe-mcp-server@<version> dependencies.playwright` (`grep -rn "playwright@" .`). Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved, then bump the plugin version.
+**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved, then bump the plugin version.
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -104,7 +104,7 @@ Two distribution paths, not mutually exclusive:
 
 Two mechanisms are supported; choose during `/axe-accessibility:mcp-setup`:
 
-- **API key** — create one at the [Axe Account Portal](https://axe.deque.com) (API Keys → "Axe MCP Server" product), then enter it in the plugin's **Axe API key** option. Claude Code asks when you enable the plugin; change it later under `/config`. It is stored in your system keychain, not in `settings.json`.
+- **API key** — create one at the [Axe Account Portal](https://axe.deque.com) (API Keys → "Axe MCP Server" product), then enter it in the plugin's **Axe API key** option. Claude Code asks when you enable the plugin; change it later under `/plugin` (manage axe-accessibility). Sensitive options don't appear in `/config`. It is stored in your system keychain, not in `settings.json`.
 - **OAuth 2.0** — `npx -y @deque/axe-auth@1.6.0 login` (browser PKCE flow; tokens stored in the OS keychain with auto-refresh).
 
 The bundled `.mcp.json` is **auth-agnostic**: it mints an OAuth token and passes **exactly one** credential — the OAuth `AXE_ACCESS_TOKEN` if you're logged in, otherwise the key from the **Axe API key** option. Leave the option blank if you use OAuth. The bundled config does not read an `AXE_API_KEY` exported in your shell; if you relied on one before 0.3.1, enter it in the option instead. The server rejects having both set, so the config unsets the API key when a token is present. Set `AXE_SERVER_URL` for private cloud / on-prem deployments; see `client-configs.md` for the full environment-variable table (`AXE_ADVANCED_RULES`, `AXE_CHROME_PATH`, `BROWSER_TIMEOUT_MS`, `LOG_LEVEL`).
