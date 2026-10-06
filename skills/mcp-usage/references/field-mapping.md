@@ -1,6 +1,6 @@
 # Tool output -> remediate field mapping
 
-All shapes below are the wire format of Axe MCP Server 1.6.0, the release this guidance was written against. The bundled config tracks `^1.6.0`, so a running 1.x server may be newer. The server generates its own tool descriptions and schemas at runtime, so those are authoritative if they ever disagree with this file — check `serverInfo.version` from `initialize` to see what is running.
+All shapes below are the wire format of Axe MCP Server 1.6.0, the release this guidance was written against. The bundled config pins exactly that version; a hand-written or Docker config may run a different one. The server generates its own tool descriptions and schemas at runtime, so those are authoritative if they ever disagree with this file — check `serverInfo.version` from `initialize` to see what is running.
 
 ## `analyze` response
 

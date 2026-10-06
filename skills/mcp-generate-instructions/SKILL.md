@@ -2,7 +2,7 @@
 name: mcp-generate-instructions
 description: This skill should be used when the user asks to "generate accessibility instructions", "add axe instructions to my repo", "bake a11y into my coding agent", "create copilot-instructions for accessibility", "set up CLAUDE.md for axe", or runs /axe-accessibility:mcp-generate-instructions. It writes or updates agent-instruction files (CLAUDE.md, .github/copilot-instructions.md, Cursor rules, or AGENTS.md) that enforce the Axe MCP analyze -> remediate -> verify workflow, including on-request guided tests.
 argument-hint: "[targets] (optional: claude | copilot | cursor | agents | all)"
-allowed-tools: AskUserQuestion, Bash, Glob, Read, Edit, Write
+allowed-tools: AskUserQuestion, Glob, Read, Edit, Write
 ---
 
 # Generate accessibility agent instructions

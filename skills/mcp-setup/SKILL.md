@@ -2,7 +2,7 @@
 name: mcp-setup
 description: This skill should be used when the user asks to "set up Axe MCP", "configure the Axe MCP Server", "install axe accessibility tooling", "connect Axe MCP", "authenticate axe", or runs /axe-accessibility:mcp-setup. It interactively wires the Axe MCP Server into the user's IDE/MCP client, helps choose a distribution (npm or Docker) and authentication (API key or OAuth), and verifies the connection.
 argument-hint: "[client] (optional: claude-code | cursor | vscode | claude-desktop)"
-allowed-tools: AskUserQuestion, Bash, Read, Edit, Write
+allowed-tools: AskUserQuestion, Read, Edit, Write
 ---
 
 # Set up the Axe MCP Server
@@ -15,12 +15,12 @@ The one universal prerequisite is an **Axe DevTools for Web** subscription whose
 
 Ask which to use (`AskUserQuestion`). **Recommend npm for local development** — it is the default the plugin ships.
 
-- **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@^1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
+- **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
 - **Docker** — runs as a container from `dequesystems/axe-mcp-server:latest`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
 
 The two distributions version differently, and the difference matters:
 
-- **npm tracks `^1.6.0`.** 1.x releases arrive automatically on the next start, and a 2.x cannot land on a user who has not updated the plugin. Keep the `^1.6.0` range in any npm config you write.
+- **npm is pinned to `1.6.0`.** The exact version matches the guidance and what was reviewed; new server releases arrive with plugin updates. Keep exact versions (never a range or `@latest`) in any npm config you write.
 - **Docker uses `:latest`, which is unbounded.** A tag has no range equivalent, so a `docker pull` can cross into 2.x. It also does not refresh on its own — an already-pulled image stays put until someone pulls again, so Docker users can sit *behind* 1.6.0 as easily as they can jump ahead of it.
 
 This guidance documents server 1.6.0's response shapes. Within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree.
@@ -29,13 +29,13 @@ Verify the chosen prerequisite before writing config:
 
 - npm: `node --version` (must be >= 22.19.0), then install the browser. **The server does not download it for you**, and skipping this is the most common first-run failure.
 
-  **Pin Playwright to the version the server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Derive it from the server package, then install:
+  **Pin Playwright to the version the server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Install the version `axe-mcp-server@1.6.0` depends on:
 
   ```sh
-  npx playwright@$(npm view 'axe-mcp-server@^1.6.0' dependencies.playwright) install chromium
+  npx -y playwright@1.62.1 install chromium
   ```
 
-  The `^1.6.0` here must match the range in the MCP config. Querying unqualified `axe-mcp-server` reads the **`latest`** tag instead, which installs a browser for the wrong major once a 2.x ships. If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
+  If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
 > **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
@@ -52,12 +52,16 @@ Ask which method to use (`AskUserQuestion`):
 ### API key path
 
 1. Direct the user to create a key: **Axe Account Portal (https://axe.deque.com) -> API Keys -> ADD NEW API KEY -> product "Axe MCP Server"**, then copy it.
-2. Have the user export it where their client can read it: `export AXE_API_KEY="<key>"` (persist in shell profile). Never write the key into a committed file.
+2. Where the key goes depends on the client:
+   - **Claude Code with this plugin:** enter it in the plugin's **Axe API key** option — Claude Code asks when the plugin is enabled, and it can be changed later under `/plugin` (manage axe-accessibility) — sensitive options are not listed in `/config`. It is stored in the system keychain. The bundled config does **not** read an `AXE_API_KEY` exported in the shell, so don't tell these users to export one.
+   - **Any other client, or a hand-written config:** export it where the client can read it: `export AXE_API_KEY="<key>"` (persist in shell profile).
+
+   Never write the key into a committed file.
 
 ### OAuth path
 
-1. Log in: `npx -y @deque/axe-auth@^1.6.0 login` (add `--server <url>` for private cloud / on-prem). This opens a browser for the PKCE flow and stores tokens in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Requires Node 22 LTS+.
-2. Verify a token can be minted: `npx -y @deque/axe-auth@^1.6.0 token` should print a token. Logout later with `npx -y @deque/axe-auth@^1.6.0 logout`.
+1. Log in: `npx -y @deque/axe-auth@1.6.0 login` (add `--server <url>` for private cloud / on-prem). This opens a browser for the PKCE flow and stores tokens in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Requires Node 22 LTS+.
+2. Verify a token can be minted: `npx -y @deque/axe-auth@1.6.0 token` should print a token. Logout later with `npx -y @deque/axe-auth@1.6.0 logout`.
 
 > **npm + OAuth needs an explicit `unset`.** Under Docker, credentials are passed with explicit `-e` flags, so an inherited `AXE_API_KEY` never reaches the server. The npm distribution inherits the whole shell environment — so if the user has `AXE_API_KEY` exported *and* an OAuth session, both variables reach the server and it fails at startup. Any npm+OAuth config must `unset AXE_API_KEY` when it sets `AXE_ACCESS_TOKEN`. The bundled config does this.
 
@@ -65,7 +69,7 @@ Ask which method to use (`AskUserQuestion`):
 
 Ask which client to configure (or use `$1`): Claude Code, Cursor, VS Code (Copilot), Claude Desktop, or generic/other.
 
-The plugin already ships an **auth-agnostic** `.mcp.json` (see plugin root) built on the **npm** distribution — it is not distribution-agnostic, so a user who chose Docker still needs a config from `references/client-configs.md`. It clears any inherited `AXE_ACCESS_TOKEN`, mints a fresh one, and passes **exactly one** credential: `AXE_ACCESS_TOKEN` if an OAuth session exists (unsetting `AXE_API_KEY`), otherwise whatever `AXE_API_KEY` is in the environment. For Claude Code users who chose npm, installing the plugin is usually enough — confirm the server appears and skip to verification.
+The plugin already ships an **auth-agnostic** `.mcp.json` (see plugin root) built on the **npm** distribution — it is not distribution-agnostic, so a user who chose Docker still needs a config from `references/client-configs.md`. It clears any inherited `AXE_ACCESS_TOKEN`, mints a fresh one, and passes **exactly one** credential: `AXE_ACCESS_TOKEN` if an OAuth session exists (unsetting `AXE_API_KEY`), otherwise the key from the plugin's **Axe API key** option. API-key users must fill in that option — an exported `AXE_API_KEY` is not used. For Claude Code users who chose npm, installing the plugin is usually enough — confirm the server appears and skip to verification.
 
 For every other combination, emit the correct configuration snippet. Read `references/client-configs.md` and produce the snippet matching the chosen **client + distribution + auth method**, then either write it to the client's config file (with the user's confirmation) or print it for them to paste.
 

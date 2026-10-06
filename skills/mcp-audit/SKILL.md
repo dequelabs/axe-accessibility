@@ -2,7 +2,7 @@
 name: mcp-audit
 description: This skill should be used when the user asks to "audit accessibility", "fix all a11y issues on this page", "run the accessibility loop", "remediate accessibility until clean", "scan and fix localhost", "audit keyboard accessibility", "audit and fix my modal", or runs /axe-accessibility:mcp-audit. It drives the Axe MCP analyze -> remediate -> apply -> verify loop on a URL, applying fixes each round until violations reach zero or a round cap is hit, plus guided tests (keyboard, interactive elements, modal) when the user asks for them.
 argument-hint: "<url> [max-rounds] (default url: detected localhost, default rounds: 5)"
-allowed-tools: Bash, Read, Edit, Write, Glob, Grep
+allowed-tools: Read, Edit, Write, Glob, Grep
 ---
 
 # Run the accessibility audit loop
