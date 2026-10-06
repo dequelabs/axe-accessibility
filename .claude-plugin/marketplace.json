@@ -12,7 +12,7 @@
       "name": "axe-accessibility",
       "source": "./",
       "description": "Deque's accessibility toolkit for coding agents. Get accessible UI effortlessly - your agent builds, tests, and remediates accessibility in the loop, so it's never a separate, manual chore. Currently powers the Axe MCP Server scan -> remediate -> verify workflow, plus on-request guided tests for keyboard access, interactive elements, and modal dialogs; expanding over time.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "keywords": ["accessibility", "a11y", "axe", "deque", "wcag", "mcp", "remediation"]
     }
   ]
