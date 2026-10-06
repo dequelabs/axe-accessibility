@@ -17,7 +17,7 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
 | `/axe-accessibility:mcp-setup` | Skill (command) | Interactive setup: pick distribution (npm or Docker) and auth (API key or OAuth), configure your client, verify the connection. |
 | `/axe-accessibility:mcp-generate-instructions` | Skill (command) | Generate/merge agent-instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor rules, `AGENTS.md`) that enforce the workflow. |
 | `/axe-accessibility:mcp-audit` | Skill (command) | Drive the loop on a URL: analyze → batched remediate → apply → re-verify until 0 violations or a round cap, plus guided tests when you ask for them. |
-| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution, pinned to `axe-mcp-server@1.6.0` and `@deque/axe-auth@1.6.0` — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
+| `.mcp.json` | MCP server | Ships an auth-agnostic Axe MCP Server entry using the **npm** distribution, started by `scripts/start-axe-mcp-server.sh` and pinned to `axe-mcp-server@1.6.0` and `@deque/axe-auth@1.6.0` — works with either API key or OAuth. Docker needs a different command shape (see `client-configs.md`). |
 
 ## Prerequisites
 

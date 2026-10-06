@@ -56,7 +56,7 @@ Serves both auth methods with one config — **npm only**; Docker needs shape 6.
 }
 ```
 
-The plugin's own `.mcp.json` is this shape plus `"env": { "AXE_API_KEY": "${user_config.api_key}" }`: in Claude Code the API key comes from the plugin's **Axe API key** option (stored in the system keychain), not from the shell, and an exported `AXE_API_KEY` is ignored. Left blank, the option arrives as an empty string, which the script unsets so OAuth works. Other clients have no plugin options, so this standalone shape reads `AXE_API_KEY` from the client's launch environment.
+The plugin's own `.mcp.json` runs the same logic from `scripts/start-axe-mcp-server.sh`, with `"env": { "AXE_API_KEY": "${user_config.api_key}" }`: in Claude Code the API key comes from the plugin's **Axe API key** option (stored in the system keychain), not from the shell, and an exported `AXE_API_KEY` is ignored. Left blank, the option arrives as an empty string, which the server treats as unset, so OAuth works. Other clients have no plugin options, so this standalone shape reads `AXE_API_KEY` from the client's launch environment.
 
 ### 4. Docker + API key
 
