@@ -29,13 +29,13 @@ Verify the chosen prerequisite before writing config:
 
 - npm: `node --version` (must be >= 22.19.0), then install the browser. **The server does not download it for you**, and skipping this is the most common first-run failure.
 
-  **Pin Playwright to the version the server ships.** A bare `npx playwright install chromium` resolves to Playwright's latest release, which can install a Chromium revision the server doesn't support. Install the version `axe-mcp-server@1.6.0` depends on:
+  **Pin Playwright to the version the server ships.** Installing Playwright without a version resolves to its latest release, which can install a Chromium revision the server doesn't support. Install the version `axe-mcp-server@1.6.0` depends on:
 
   ```sh
   npx -y playwright@1.62.1 install chromium
   ```
 
-  If a scan later fails with `Chromium is not installed. Run npx playwright@<version> install chromium`, run that message's command verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
+  If a scan later fails with `Chromium is not installed`, run the install command that error message prints, verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
 > **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
