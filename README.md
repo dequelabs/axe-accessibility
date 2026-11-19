@@ -135,6 +135,10 @@ The plugin itself is configuration and instructions: the skills and `.mcp.json` 
 
 Collection, use, storage, third-party sharing, retention, and regional processing are governed by the privacy policy linked above together with your Axe DevTools agreement.
 
+## Ownership
+
+This plugin is owned and maintained by Deque's MCP team ([@dequelabs/mcp-team](https://github.com/orgs/dequelabs/teams/mcp-team)).
+
 ## License
 
 MIT © Deque Systems, Inc.
