@@ -63,3 +63,10 @@ jobs:
       - uses: ./.github/actions/deps
       - run: pnpm test
       - run: pnpm run check:workflow-timeouts
+  versions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/deps
+      - run: pnpm run check:versions
