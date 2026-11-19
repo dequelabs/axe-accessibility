@@ -16,12 +16,9 @@ The one universal prerequisite is an **Axe DevTools for Web** subscription whose
 Ask which to use (`AskUserQuestion`). **Recommend npm for local development** — it is the default the plugin ships.
 
 - **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
-- **Docker** — runs as a container from `dequesystems/axe-mcp-server:latest`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
+- **Docker** — runs as a container from `dequesystems/axe-mcp-server:v1.6.0`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
 
-The two distributions version differently, and the difference matters:
-
-- **npm is pinned to `1.6.0`.** The exact version matches the guidance and what was reviewed; new server releases arrive with plugin updates. Keep exact versions (never a range or `@latest`) in any npm config you write.
-- **Docker uses `:latest`, which is unbounded.** A tag has no range equivalent, so a `docker pull` can cross into 2.x. It also does not refresh on its own — an already-pulled image stays put until someone pulls again, so Docker users can sit *behind* 1.6.0 as easily as they can jump ahead of it.
+Both distributions are pinned to the same server release: `axe-mcp-server@1.6.0` on npm and the `v1.6.0` image tag on Docker. The exact version matches the guidance and what was reviewed; new server releases arrive with plugin updates. Keep exact versions (never a range, `@latest`, or `:latest`) in any config you write.
 
 This guidance documents server 1.6.0's response shapes. Within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree.
 
