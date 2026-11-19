@@ -80,6 +80,18 @@ function collectPluginVersions() {
       text: `plugins[name=${plugin.name}].version`,
     });
   }
+  if (entry) {
+    // Self-hosted marketplace users install the tag this ref names, so it must
+    // be the tag of the version plugin.json declares.
+    const ref = entry.source?.ref;
+    versions.push({
+      version: /^v\d/.test(ref ?? "")
+        ? ref.slice(1)
+        : `(${JSON.stringify(ref ?? null)}, expected "v${plugin.version}")`,
+      file: MARKETPLACE,
+      text: `plugins[name=${plugin.name}].source.ref`,
+    });
+  }
   return versions;
 }
 
