@@ -18,7 +18,7 @@ Ask which to use (`AskUserQuestion`). **Recommend npm for local development** �
 - **npm (recommended)** — runs as a local Node process via `npx -y axe-mcp-server@1.6.0`. Requires **Node.js >= 22.19.0** and a one-time Chromium install with Playwright pinned to that server release's version (below). Reaches `localhost` dev servers **directly**, with none of the container networking workarounds Docker needs.
 - **Docker** — runs as a container from `dequesystems/axe-mcp-server:v1.6.0`. Requires Docker installed and running. Better when the user wants isolation, has no Node toolchain, or is standardizing CI images. Needs `--add-host` plumbing to reach the host's dev server.
 
-Both distributions are pinned to the same server release: `axe-mcp-server@1.6.0` on npm and the `v1.6.0` image tag on Docker. The exact version matches the guidance and what was reviewed; new server releases arrive with plugin updates. Keep exact versions (never a range, `@latest`, or `:latest`) in any config you write.
+Both distributions are pinned to the same server release: `axe-mcp-server@1.6.0` on npm and the `v1.6.0` image tag on Docker. The exact version matches the guidance and what was reviewed; new server releases arrive with plugin updates. A Docker config is copied, not bundled, so it keeps its tag until the user edits it after a plugin update. Keep exact versions (never a range, `@latest`, or `:latest`) in any config you write.
 
 This guidance documents server 1.6.0's response shapes. Within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree.
 

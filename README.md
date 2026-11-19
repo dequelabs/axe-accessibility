@@ -45,7 +45,7 @@ The plugin defaults to **npm**, which is the lower-friction path for local devel
 | Requires | Node >= 22.19.0 | Docker daemon running |
 | Browser | one-time Chromium install, Playwright pinned to the server's version | bundled in the image |
 | Reaching `localhost` | direct | needs `--add-host=host.docker.internal:host-gateway`, and a dev server bound to `0.0.0.0` |
-| Updates | with each plugin release (pinned `1.6.0`) | with each plugin release (pinned `v1.6.0`) |
+| Updates | with each plugin release (pinned `1.6.0`) | edit the tag in your config after each plugin release (pinned `v1.6.0`) |
 | `AXE_CHROME_PATH` | supported | **fails at startup** |
 | Best for | local development | isolation, CI images, no Node toolchain |
 

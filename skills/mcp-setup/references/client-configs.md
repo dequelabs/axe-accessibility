@@ -195,3 +195,4 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 - **`Failed to resolve an IP address for "host.docker.internal"`:** the `docker run` args are missing `--add-host=host.docker.internal:host-gateway`. Add it (most common on Linux) and restart the server.
 - **`net::ERR_CONNECTION_REFUSED` scanning a local dev server:** the dev server is bound only to `127.0.0.1` and is unreachable from the container. Restart it listening on all interfaces, e.g. `npm run dev -- --host=0.0.0.0`. (Switching to the npm distribution avoids this class of problem entirely.)
 - **`AXE_CHROME_PATH` set:** remove it — it fails at startup under Docker.
+- **Features documented but missing:** a Docker config keeps whatever tag it was written with. Compare `serverInfo.version` from the MCP `initialize` response with `1.6.0`; if they differ (including a config still on `:latest`), change the image to `dequesystems/axe-mcp-server:v1.6.0` and restart the connection.
