@@ -61,5 +61,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/deps
-      - run: pnpm test
       - run: pnpm run check:workflow-timeouts
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/deps
+      - run: pnpm test
