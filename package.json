@@ -1,0 +1,38 @@
+{
+  "name": "axe-accessibility",
+  "private": true,
+  "type": "commonjs",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "pnpm run --sequential \"/^(check:.+|test)$/\"",
+    "check:format": "prettier --check .",
+    "check:lint": "eslint .",
+    "check:spelling": "cspell --no-progress --gitignore --dot .",
+    "check:shell": "shellcheck scripts/*.sh",
+    "check:manifests": "claude plugin validate --strict .claude-plugin/plugin.json && claude plugin validate --strict .claude-plugin/marketplace.json",
+    "check:links": "linkinator \"**/*.md\"",
+    "check:workflow-timeouts": "node scripts/check-workflow-timeouts.mjs",
+    "test": "node --test",
+    "fmt": "prettier --write .",
+    "prepare": "husky",
+    "pre-commit": "lint-staged"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "2.1.311",
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^2.1.1",
+    "@eslint/markdown": "^8.0.3",
+    "cspell": "^10.4.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "linkinator": "^8.1.0",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.10.1",
+    "shellcheck": "^4.1.0",
+    "yaml": "^2.9.1"
+  }
+}

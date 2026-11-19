@@ -43,12 +43,12 @@ Every issue carries all of these fields:
 
 The server applies the organization's scan settings to the issue list before returning it, so a clean result is not always a clean page. Four settings drop whole issues:
 
-| Setting | Effect when restrictive |
-|---|---|
+| Setting                | Effect when restrictive                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------- |
 | accessibility standard | issues whose `tags` fall outside the selected ruleset are dropped (`all` disables this) |
-| best practices | `isBestPractice` issues are dropped when disabled |
-| advanced rules | `isAdvanced` issues are dropped when disabled |
-| needs review | `isNeedsReview` issues are dropped when disabled |
+| best practices         | `isBestPractice` issues are dropped when disabled                                       |
+| advanced rules         | `isAdvanced` issues are dropped when disabled                                           |
+| needs review           | `isNeedsReview` issues are dropped when disabled                                        |
 
 This filter runs on **guided-test issues too**, not just axe issues — so an empty `issues` array from a guided test can mean the org filtered the findings out rather than that the test found nothing. The filtering is invisible in the response: there is no count of what was removed. When a result looks surprisingly clean, say that org settings may be narrowing it rather than asserting the page passes.
 
@@ -93,24 +93,25 @@ Test `data.igt.upgradeRequired === true` **before** reading any tool key. When i
 
 Every tool entry has the same shape. Check `status` first:
 
-| `status` | Carries | What to do |
-|---|---|---|
-| `"complete"` | `issues`, `igtElements`, optional `terminatedReason` | Read the issues. |
-| `"error"` | `error` (string) | Report "the `<tool>` test failed: `<error>`". It does **not** make the call an error and does not affect `data.axe` or the other tools. |
+| `status`     | Carries                                              | What to do                                                                                                                              |
+| ------------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `"complete"` | `issues`, `igtElements`, optional `terminatedReason` | Read the issues.                                                                                                                        |
+| `"error"`    | `error` (string)                                     | Report "the `<tool>` test failed: `<error>`". It does **not** make the call an error and does not affect `data.axe` or the other tools. |
 
 Phased selection adds three more statuses on `interactive-elements` only — see "Phased selection" below.
 
 - **The issue count is `issues.length`.** `igtElements` is every element the test processed — an inventory, **not** a list of issues. Report entries with `analysisFailed: true` separately, as elements that could not be analyzed.
 
   `igtElements` entries are a **trimmed** shape, not the raw element the engine saw: the server drops a large ML/undo overlay (`mlScratchpad`, `original*`, `box`, `attributes`, ancestor/descendant id arrays, screenshot keys) before the response leaves it. What survives is `vnodeId`, `selector`, `tagName`, `role`, `accessibleName`, `states`, and `analysisFailed`. **Every one is optional** — a field is present only when the source element carried it, so `keyboard` entries are often little more than a selector while `interactive-elements` entries keep role, name and state. Do not assume a field exists; check before reading it.
+
 - **`terminatedReason`**, when present, means the run ended before every step completed, so results may be partial. It is not an error. Report it with the result:
 
-| tool | possible `terminatedReason` |
-|---|---|
-| any | `insufficient-credits`, `subscription-missing` |
-| `keyboard` | `keyboard-trap` — a focus trap halted the run |
-| `interactive-elements` | (none of its own) |
-| `modal` | `modal-not-detected`, `modal-dismiss-failed`, `trigger-not-resolved`, `modal-selector-not-resolved`, `modal-selector-not-visible`, `modal-fallback-not-resolved`, `modal-fallback-not-visible`, and the **expected** `dismissibility-unavailable` / `focus-restoration-unavailable` |
+| tool                   | possible `terminatedReason`                                                                                                                                                                                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| any                    | `insufficient-credits`, `subscription-missing`                                                                                                                                                                                                                                      |
+| `keyboard`             | `keyboard-trap` — a focus trap halted the run                                                                                                                                                                                                                                       |
+| `interactive-elements` | (none of its own)                                                                                                                                                                                                                                                                   |
+| `modal`                | `modal-not-detected`, `modal-dismiss-failed`, `trigger-not-resolved`, `modal-selector-not-resolved`, `modal-selector-not-visible`, `modal-fallback-not-resolved`, `modal-fallback-not-visible`, and the **expected** `dismissibility-unavailable` / `focus-restoration-unavailable` |
 
 A `modal` run without `modalTriggerSelector` **always** ends with `dismissibility-unavailable`. That is expected, not a failure — but it means an empty `issues` list says nothing about dismissal or focus restoration. Report it as a structural check only.
 
@@ -135,7 +136,7 @@ All three tools emit the same issue shape. **It differs from `analyze` issues �
   **Expect it to be `null` often, and never read anything into its absence.** Two independent reasons it goes missing:
 
   1. **Only three rules ever populate it** — `aria-role-missing`, `keyboard-inaccessible`, and `keyboard-trap`. Every other guided-test rule, including all of the `modal` rules and `focus-indicator-missing`, is deterministic and resolves to `null` by construction.
-  2. **MCP runs request a lean AI response upstream.** The analysis service makes its reasoning fields optional when the caller asks for the trimmed response, which is what the MCP path does. The server builds `aiReasoning` by collapsing the rule's AI *suggestion* and *reasoning*, so on a lean run it can degrade to the suggestion alone, or to `null` even for one of the three rules above.
+  2. **MCP runs request a lean AI response upstream.** The analysis service makes its reasoning fields optional when the caller asks for the trimmed response, which is what the MCP path does. The server builds `aiReasoning` by collapsing the rule's AI _suggestion_ and _reasoning_, so on a lean run it can degrade to the suggestion alone, or to `null` even for one of the three rules above.
 
   So a `null` `aiReasoning` means "no explanation came back", never "the AI had no concerns". Do not report its absence as evidence the element is fine, and do not retry the scan to try to obtain it.
 
@@ -159,6 +160,7 @@ Phased selection lets the user choose which elements the `interactive-elements` 
    ```
 
    Show the candidates to the user and let them choose. `componentGroups` groups repeated components so the user can pick a whole group at once.
+
 2. `analyze({ url, igtTools: ["interactive-elements"], sessionID, selectedIDs: [<vnodeId>, ...] })` — resumes the same paused run and returns `status: "complete"` for exactly those elements. **`data.axe` is absent on this call**, because the axe results came back on call 1. Every parameter other than `url`, `igtTools`, `sessionID`, and `selectedIDs` is ignored.
 
 - `status: "invalid_selection"` (with `unknownIDs`) — a selected ID was not offered. The session stays paused; retry with offered IDs only.

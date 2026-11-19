@@ -14,7 +14,7 @@ Some servers also list a standalone **`igt`** tool titled "IGT (Deprecated)". It
 
 The tools may appear under a client-specific prefix (for example `mcp__axe-mcp-server__analyze` in Claude Code, `mcp_axe-mcp-server_analyze` in Copilot). Match whatever naming the host client uses; the behavior is identical.
 
-### When this guidance and the server disagree, the server wins
+## When this guidance and the server disagree, the server wins
 
 The shapes and parameters described here are those of **server 1.6.0**. The bundled
 config pins `axe-mcp-server@1.6.0`, but a hand-written or Docker config may run a
@@ -41,7 +41,7 @@ Apply this loop whenever creating, modifying, or auditing user-facing UI — not
 2. **Remediate.** Collect **all** issues from that one scan and send them in **one batched `remediate` call** (up to 25 issues). Send every instance — do **not** collapse issues that share a rule. Apply the returned guidance to the source code. Do not invent fixes without consulting `remediate`.
 3. **Verify.** Re-run `analyze` on the same URL and confirm zero violations before considering the task complete. If issues remain, repeat.
 
-**Guided tests run only when the user asks for what they cover** — keyboard operability, accessible names/roles/states of controls, or modal behavior. They use AI and consume credits, so never add `igtTools` by default, and never add it to the loop's verification scans on your own. When a request does call for one, see "Guided tests" below. When the user has not asked but the UI clearly warrants one (a new dialog, a custom widget), you may *suggest* the relevant test and its cost — do not run it unprompted.
+**Guided tests run only when the user asks for what they cover** — keyboard operability, accessible names/roles/states of controls, or modal behavior. They use AI and consume credits, so never add `igtTools` by default, and never add it to the loop's verification scans on your own. When a request does call for one, see "Guided tests" below. When the user has not asked but the UI clearly warrants one (a new dialog, a custom widget), you may _suggest_ the relevant test and its cost — do not run it unprompted.
 
 ## `remediate` is batched, not per-issue
 
@@ -78,7 +78,7 @@ When you do collapse, the key is **`rule` + normalized element identity**:
 - Do **not** match on raw `source` — per-instance attributes make it too strict (those same 23 issues had 23 distinct sources) and it says nothing about tree position.
 - **Normalize the selector path**: strip positional indices (`:nth-child(7)` -> `:nth-child(n)`), then group. That collapsed 23 `target-size` -> 19, 8 `link-name` -> 6, 4 `image-alt` -> 2 on the same page.
 
-**Content-dependent rules need more than element identity.** Twelve cards with twelve different images share one normalized selector but need twelve *different* alt strings. For `image-alt`, `link-name`/`button-name`, `label`, and `frame-title`, additionally require the content-bearing part (`src`, text, `href`) to match. Structural and style rules (`color-contrast`, `target-size`, `aria-*`) are safe on element identity alone.
+**Content-dependent rules need more than element identity.** Twelve cards with twelve different images share one normalized selector but need twelve _different_ alt strings. For `image-alt`, `link-name`/`button-name`, `label`, and `frame-title`, additionally require the content-bearing part (`src`, text, `href`) to match. Structural and style rules (`color-contrast`, `target-size`, `aria-*`) are safe on element identity alone.
 
 Always state what you collapsed (`47 issues -> 18 requests, 29 collapsed across 6 components`) — a silent collapse is indistinguishable from a clean scan.
 
@@ -90,17 +90,17 @@ Each result is `{ id, status: "ok" | "error", remediation | error }`. On success
 
 `analyze` returns `{ data: [...issues], pageUrl, advancedRules }` — the issues are under **`data`**, not `issues`. With `igtTools`, `data` becomes `{ axe: [...issues], igt: { "<tool>": {...} } }`.
 
-| remediate field | From an axe issue | From a guided-test issue |
-|---|---|---|
-| `id` | invented by you, unique in the batch | invented by you, unique in the batch |
-| `pageUrl` | the response's top-level `pageUrl` | the response's top-level `pageUrl` |
-| `rule` | the issue's `rule` | the issue's `rule` |
-| `elementHtml` | the issue's `source` | the issue's `source`; **if empty, the element's HTML found via `selector`** |
-| `remediation` | `summary` + `description` + `helpText` | `summary` + `help` + `aiReasoning` (when non-null) |
+| remediate field | From an axe issue                      | From a guided-test issue                                                    |
+| --------------- | -------------------------------------- | --------------------------------------------------------------------------- |
+| `id`            | invented by you, unique in the batch   | invented by you, unique in the batch                                        |
+| `pageUrl`       | the response's top-level `pageUrl`     | the response's top-level `pageUrl`                                          |
+| `rule`          | the issue's `rule`                     | the issue's `rule`                                                          |
+| `elementHtml`   | the issue's `source`                   | the issue's `source`; **if empty, the element's HTML found via `selector`** |
+| `remediation`   | `summary` + `description` + `helpText` | `summary` + `help` + `aiReasoning` (when non-null)                          |
 
 Anchor the `remediation` text on **`summary`** — that is where the per-issue actionable detail lives ("Fix any of the following: ..."). `description`/`helpText` are generic rule-level text and only add context.
 
-> **Name collision — read this.** An `analyze` issue *also* has a field called `remediation`, and it is an **object** (`{any, all, none}` of raw axe check results), not the string `remediate` wants. Never pass `issue.remediation` through as the `remediation` argument. Build that string from `summary`/`description`/`helpText` as above.
+> **Name collision — read this.** An `analyze` issue _also_ has a field called `remediation`, and it is an **object** (`{any, all, none}` of raw axe check results), not the string `remediate` wants. Never pass `issue.remediation` through as the `remediation` argument. Build that string from `summary`/`description`/`helpText` as above.
 
 See `references/field-mapping.md` for the full issue shape and a worked batched example.
 
@@ -117,14 +117,14 @@ Beyond the remediation fields, each issue carries flags that should change how y
 
 Every response carries an `advancedRules` block reporting what was actually applied and why — `{ value, source }`. **Read `source` before concluding anything about advanced findings**, because several values mean "none will ever appear":
 
-| `source` | meaning |
-|---|---|
-| `tool_arg` | your `advancedRules` parameter won |
-| `env_var` | the server's `AXE_ADVANCED_RULES` won |
-| `org_default` | the organization's configured policy applied |
+| `source`            | meaning                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `tool_arg`          | your `advancedRules` parameter won                                                     |
+| `env_var`           | the server's `AXE_ADVANCED_RULES` won                                                  |
+| `org_default`       | the organization's configured policy applied                                           |
 | `org_policy_locked` | org policy is fixed; your override was **rejected** — the policy value applied instead |
-| `tier_locked` | free tier; Advanced Rules cannot be enabled by any means |
-| `unavailable` | not enabled for this caller, or the entitlement lookup failed |
+| `tier_locked`       | free tier; Advanced Rules cannot be enabled by any means                               |
+| `unavailable`       | not enabled for this caller, or the entitlement lookup failed                          |
 
 Precedence is: `advancedRules` parameter > `AXE_ADVANCED_RULES` > org policy — except that a **fixed** org policy beats any override, and the free-tier gate beats everything.
 
@@ -148,7 +148,7 @@ So `{ "value": "disabled", "source": "unavailable" }` or `"tier_locked"` means t
 
 **It is conditionally advertised.** The server removes `advancedRules` from `analyze`'s published schema when Advanced Rules are not enabled for the caller — so on an unentitled or free-tier account the parameter is absent from the tool definition and passing it is silently ignored (no validation error, because the field is not in the schema). `igtTools` works the same way: its enum lists only the guided tests the account is entitled to, and the whole parameter disappears when none are. **Rule out a stale server before concluding it is entitlement.** Absence has two causes: the account is not entitled, or the server predates the feature (`igtTools` needs 1.5.0+). The bundled npm config is pinned to 1.6.0, so there it is almost always entitlement. Docker is different: `:latest` never refreshes an already-pulled image, so a container can sit on a pre-1.5 release indefinitely. Check `serverInfo.version` from the MCP `initialize` response against the feature's minimum version first; only on a current server does absence mean the account lacks the entitlement.
 
-**Reading a screenshot honestly:** the image is the page as it looked *the moment before* `axe.run()` started. On SPAs, re-renders, `useEffect` work, animations, and in-flight requests mean the DOM axe actually scanned can differ from the picture. Do not describe an element as visible-but-not-flagged based on the screenshot — that skew, not a missed violation, is the usual explanation.
+**Reading a screenshot honestly:** the image is the page as it looked _the moment before_ `axe.run()` started. On SPAs, re-renders, `useEffect` work, animations, and in-flight requests mean the DOM axe actually scanned can differ from the picture. Do not describe an element as visible-but-not-flagged based on the screenshot — that skew, not a missed violation, is the usual explanation.
 
 `cookies` vs. `before`: cookies influence **how the initial request is routed**; `before` cannot, because it runs after the page has already loaded.
 
@@ -162,11 +162,11 @@ Guided tests are Intelligent Guided Tests (IGT) that drive the page the way a te
 analyze({ url, igtTools: ["keyboard"] })
 ```
 
-| `igtTools` entry | Run it when the user asks about | Finds |
-|---|---|---|
-| `keyboard` | keyboard access, tab order, focus traps, focus visibility | unreachable elements, focus traps, missing/insufficient focus indicators, wrong ARIA roles, elements that submit on focus |
-| `interactive-elements` | accessible names, roles, or states of buttons, links, and custom controls | missing or incorrect accessible name, role, or state |
-| `modal` | a dialog/modal's accessibility, focus handling, or dismissal | missing dialog semantics, focus not moved into the modal, focus escaping it, failed dismissal, focus not restored |
+| `igtTools` entry       | Run it when the user asks about                                           | Finds                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `keyboard`             | keyboard access, tab order, focus traps, focus visibility                 | unreachable elements, focus traps, missing/insufficient focus indicators, wrong ARIA roles, elements that submit on focus |
+| `interactive-elements` | accessible names, roles, or states of buttons, links, and custom controls | missing or incorrect accessible name, role, or state                                                                      |
+| `modal`                | a dialog/modal's accessibility, focus handling, or dismissal              | missing dialog semantics, focus not moved into the modal, focus escaping it, failed dismissal, focus not restored         |
 
 **Request only what the user asked for.** Each guided test uses AI and consumes credits. Do not add one by default, do not add all three "for completeness", and do not re-run them on every verification round. "Check keyboard accessibility" means `["keyboard"]`, not all three. Each tool may appear in the array once.
 

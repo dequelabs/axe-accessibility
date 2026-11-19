@@ -7,7 +7,7 @@ Two independent choices: **distribution** (npm or Docker) and **auth** (API key 
 
 > **Why the npm shapes pin exact versions, and Docker can't.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. An exact pin keeps the running server matched to that guidance and to what was reviewed, and the Playwright pin (`1.62.1`) is the version that server release depends on, so the browser always matches.
 >
-> A Docker tag has no range equivalent, so the Docker shapes use `:latest` and are unbounded in both directions: a `docker pull` can cross into 2.x, and an already-pulled image never refreshes on its own, so a container can also sit far *behind* 1.6.0. Treat the Docker version as something the user manages, not something the config guarantees.
+> A Docker tag has no range equivalent, so the Docker shapes use `:latest` and are unbounded in both directions: a `docker pull` can cross into 2.x, and an already-pulled image never refreshes on its own, so a container can also sit far _behind_ 1.6.0. Treat the Docker version as something the user manages, not something the config guarantees.
 >
 > If the server and this guidance ever disagree, the server wins: it generates its own tool descriptions and schemas at runtime, so the agent always sees the live shape. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
@@ -40,7 +40,7 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 }
 ```
 
-> **The `unset` is required, not defensive.** The npm distribution inherits the entire shell environment. If the user has `AXE_API_KEY` exported (very common) *and* an OAuth session, both variables reach the server and it refuses to start. Docker does not have this problem because credentials arrive only via explicit `-e` flags.
+> **The `unset` is required, not defensive.** The npm distribution inherits the entire shell environment. If the user has `AXE_API_KEY` exported (very common) _and_ an OAuth session, both variables reach the server and it refuses to start. Docker does not have this problem because credentials arrive only via explicit `-e` flags.
 >
 > The same reasoning runs the other way, which is why shape 3 opens with `unset AXE_ACCESS_TOKEN`: a stale `AXE_ACCESS_TOKEN` exported in the shell would otherwise survive alongside `AXE_API_KEY` whenever no OAuth session is available, producing the identical both-credentials startup failure. Any npm wrapper must clear whichever variable it is not deliberately setting.
 
@@ -98,16 +98,16 @@ Set `AXE_API_KEY` and `AXE_SERVER_URL` in the environment that launches the clie
 
 ## Environment variables
 
-| Variable | Purpose | Default | Distribution |
-|---|---|---|---|
-| `AXE_API_KEY` | API key auth. Mutually exclusive with `AXE_ACCESS_TOKEN`. | — | both |
-| `AXE_ACCESS_TOKEN` | OAuth 2.0 bearer token. Mutually exclusive with `AXE_API_KEY`. | — | both |
-| `AXE_SERVER_URL` | Account Portal base URL; required for regional SaaS, private cloud, on-prem. | `https://axe.deque.com` | both |
-| `AXE_ADVANCED_RULES` | Default Advanced Rules confidence preset: `precise` \| `balanced` \| `thorough` \| `disabled`. Individual scans override it with the `advancedRules` parameter. | org default | both |
-| `AXE_CHROME_PATH` | Chrome/Chromium binary to use instead of the Playwright-managed install. **Fails at startup if set under Docker.** | Playwright's | **npm only** |
-| `AXE_SCREENSHOT_DIR` | Directory `analyze` writes screenshots to when called with `screenshot: { save: true }`. Under Docker it is inside the container — mount a volume to reach it. | OS temp dir | both |
-| `BROWSER_TIMEOUT_MS` | Browser interaction timeout. | `30000` | both |
-| `LOG_LEVEL` | `debug` \| `info` \| `warn` \| `error`. | `info` | both |
+| Variable             | Purpose                                                                                                                                                         | Default                 | Distribution |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------ |
+| `AXE_API_KEY`        | API key auth. Mutually exclusive with `AXE_ACCESS_TOKEN`.                                                                                                       | —                       | both         |
+| `AXE_ACCESS_TOKEN`   | OAuth 2.0 bearer token. Mutually exclusive with `AXE_API_KEY`.                                                                                                  | —                       | both         |
+| `AXE_SERVER_URL`     | Account Portal base URL; required for regional SaaS, private cloud, on-prem.                                                                                    | `https://axe.deque.com` | both         |
+| `AXE_ADVANCED_RULES` | Default Advanced Rules confidence preset: `precise` \| `balanced` \| `thorough` \| `disabled`. Individual scans override it with the `advancedRules` parameter. | org default             | both         |
+| `AXE_CHROME_PATH`    | Chrome/Chromium binary to use instead of the Playwright-managed install. **Fails at startup if set under Docker.**                                              | Playwright's            | **npm only** |
+| `AXE_SCREENSHOT_DIR` | Directory `analyze` writes screenshots to when called with `screenshot: { save: true }`. Under Docker it is inside the container — mount a volume to reach it.  | OS temp dir             | both         |
+| `BROWSER_TIMEOUT_MS` | Browser interaction timeout.                                                                                                                                    | `30000`                 | both         |
+| `LOG_LEVEL`          | `debug` \| `info` \| `warn` \| `error`.                                                                                                                         | `info`                  | both         |
 
 ---
 

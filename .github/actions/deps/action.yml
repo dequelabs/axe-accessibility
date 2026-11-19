@@ -1,0 +1,14 @@
+name: Install dependencies
+description: Sets up pnpm and Node from the repo's pins and installs dependencies
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .nvmrc
+        check-latest: true
+        cache: pnpm
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      shell: bash

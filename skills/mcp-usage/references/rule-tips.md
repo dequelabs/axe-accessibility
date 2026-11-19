@@ -45,7 +45,7 @@ These come from guided tests, not axe-core, and their rule IDs are IGT-specific.
 - **`aria-role-missing`** — the element behaves like a control but exposes no role, or the wrong one. Replace it with the native element (`<button>`, `<a href>`, `<input type="checkbox">`) — that gives the role, focusability, and keyboard behavior at once. Add a `role` only when a native element is genuinely impossible, and then also add the `tabindex` and key handlers that role implies. A `role` on its own is a fix in name only.
 - **`aria-name-missing-incorrect`** — the accessible name is missing, or it doesn't describe the control's purpose. Name the action or destination ("Save settings", "Toggle notifications"), not the visual ("toggle", "icon", "click here"). Prefer visible text; use `aria-label`/`aria-labelledby` only when visible text isn't feasible, and keep the visible label as the start of the accessible name so voice-control users can target it.
 - **State findings** — a toggle, expander, or tab must expose its state (`aria-pressed`, `aria-expanded`, `aria-selected`, `aria-checked`) and **update it** when the state changes. A static attribute that never changes is the usual bug.
-- The same element often fails both this test and the keyboard test (a clickable `<div>` gets `aria-role-missing` *and* `keyboard-inaccessible`). Converting it to a native element fixes both — apply one fix, not two.
+- The same element often fails both this test and the keyboard test (a clickable `<div>` gets `aria-role-missing` _and_ `keyboard-inaccessible`). Converting it to a native element fixes both — apply one fix, not two.
 
 ### Modal (`manifestGuide: "aria-modal"`)
 
@@ -61,14 +61,14 @@ These issues arrive with an empty `source`. Find the dialog through `selector` b
 
 ## Advanced Rules findings (`isAdvanced: true`)
 
-Advanced Rules use screenshots, computer vision, and LLMs, so these findings are probabilistic and often about *quality* rather than a binary conformance failure. Verify each against the rendered UI before changing code.
+Advanced Rules use screenshots, computer vision, and LLMs, so these findings are probabilistic and often about _quality_ rather than a binary conformance failure. Verify each against the rendered UI before changing code.
 
 Their rule IDs carry an **`advanced/`** prefix, so they are identifiable by rule ID as well as by `isAdvanced`. Field shape is identical to an axe-core issue.
 
 - **`advanced/text-contrast`** — contrast cases axe-core cannot compute, e.g. text over a gradient, image, or video background. Fix the design (solid backing, scrim, token change) rather than nudging a single hex value until a checker passes.
 - **`advanced/css-focus-visible`** — a control's focus indicator is hidden by CSS. Same fix discipline as the keyboard guided test's `focus-indicator-missing`: restore a visible `:focus-visible` style meeting 3:1 contrast, and look for a global `outline: none` reset as the root cause rather than patching one component. These two findings often co-occur — remediate the shared cause once rather than both reports separately.
 - **Pseudo-headings** — text styled to look like a heading but marked up as a `<p>`/`<div>`/`<span>`. The fix is real heading markup at the correct level, not `role="heading"` bolted on, and not restyling the text to look less heading-like.
-- **Unhelpful alt text** — the image has *an* `alt`, so axe-core passes, but the text is uninformative (`"image"`, `"photo"`, a filename, or duplicated adjacent text). Apply the image-alt conventions above; this is the finding those conventions exist for.
+- **Unhelpful alt text** — the image has _an_ `alt`, so axe-core passes, but the text is uninformative (`"image"`, `"photo"`, a filename, or duplicated adjacent text). Apply the image-alt conventions above; this is the finding those conventions exist for.
 
 If a finding is genuinely wrong for your UI, say so and move on — do not contort the code to satisfy it. Persistent noise is a signal to pass `advancedRules: "precise"` on the next scan, or `"disabled"` for a purely deterministic one. Both are per-scan, so no restart is needed; `AXE_ADVANCED_RULES` sets the default when you want it to stick across every scan.
 

@@ -21,7 +21,7 @@ Ask which to use (`AskUserQuestion`). **Recommend npm for local development** �
 The two distributions version differently, and the difference matters:
 
 - **npm is pinned to `1.6.0`.** The exact version matches the guidance and what was reviewed; new server releases arrive with plugin updates. Keep exact versions (never a range or `@latest`) in any npm config you write.
-- **Docker uses `:latest`, which is unbounded.** A tag has no range equivalent, so a `docker pull` can cross into 2.x. It also does not refresh on its own — an already-pulled image stays put until someone pulls again, so Docker users can sit *behind* 1.6.0 as easily as they can jump ahead of it.
+- **Docker uses `:latest`, which is unbounded.** A tag has no range equivalent, so a `docker pull` can cross into 2.x. It also does not refresh on its own — an already-pulled image stays put until someone pulls again, so Docker users can sit _behind_ 1.6.0 as easily as they can jump ahead of it.
 
 This guidance documents server 1.6.0's response shapes. Within 1.x those stay compatible, and the server's own tool descriptions win if they ever disagree.
 
@@ -36,9 +36,10 @@ Verify the chosen prerequisite before writing config:
   ```
 
   If a scan later fails with `Chromium is not installed`, run the install command that error message prints, verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
+
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
-> **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
+> **The package name is unscoped: `axe-mcp-server`** — _not_ `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
 
 ## Step 2 — Choose authentication
 
@@ -63,7 +64,7 @@ Ask which method to use (`AskUserQuestion`):
 1. Log in: `npx -y @deque/axe-auth@1.6.0 login` (add `--server <url>` for private cloud / on-prem). This opens a browser for the PKCE flow and stores tokens in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Requires Node 22 LTS+.
 2. Verify a token can be minted: `npx -y @deque/axe-auth@1.6.0 token` should print a token. Logout later with `npx -y @deque/axe-auth@1.6.0 logout`.
 
-> **npm + OAuth needs an explicit `unset`.** Under Docker, credentials are passed with explicit `-e` flags, so an inherited `AXE_API_KEY` never reaches the server. The npm distribution inherits the whole shell environment — so if the user has `AXE_API_KEY` exported *and* an OAuth session, both variables reach the server and it fails at startup. Any npm+OAuth config must `unset AXE_API_KEY` when it sets `AXE_ACCESS_TOKEN`. The bundled config does this.
+> **npm + OAuth needs an explicit `unset`.** Under Docker, credentials are passed with explicit `-e` flags, so an inherited `AXE_API_KEY` never reaches the server. The npm distribution inherits the whole shell environment — so if the user has `AXE_API_KEY` exported _and_ an OAuth session, both variables reach the server and it fails at startup. Any npm+OAuth config must `unset AXE_API_KEY` when it sets `AXE_ACCESS_TOKEN`. The bundled config does this.
 
 ## Step 3 — Choose the client
 

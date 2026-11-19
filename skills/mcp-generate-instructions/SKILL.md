@@ -13,12 +13,12 @@ Produce agent-instruction files that make a coding agent automatically run Deque
 
 Targets and their files:
 
-| Target | File |
-|---|---|
-| `claude` | `CLAUDE.md` (repo root) |
-| `copilot` | `.github/copilot-instructions.md` |
-| `cursor` | `.cursor/rules/accessibility.mdc` (fallback `.cursorrules`) |
-| `agents` | `AGENTS.md` (repo root) |
+| Target    | File                                                        |
+| --------- | ----------------------------------------------------------- |
+| `claude`  | `CLAUDE.md` (repo root)                                     |
+| `copilot` | `.github/copilot-instructions.md`                           |
+| `cursor`  | `.cursor/rules/accessibility.mdc` (fallback `.cursorrules`) |
+| `agents`  | `AGENTS.md` (repo root)                                     |
 
 If `$1` specifies targets (`claude`, `copilot`, `cursor`, `agents`, or `all`), use them. Otherwise detect what already exists in the repo with Glob (`CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/**`, `.cursorrules`, `AGENTS.md`) and confirm the set with `AskUserQuestion` — default to the files already present, offering to add others.
 
