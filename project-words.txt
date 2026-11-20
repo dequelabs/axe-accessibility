@@ -18,6 +18,7 @@ remediations
 respawns
 rgaa
 shellcheck
+shellcheckjs
 unentitled
 unsets
 versionrc

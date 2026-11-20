@@ -81,9 +81,9 @@ Once the plugin is accepted into the [Claude plugin directory](https://claude.co
 
 ## Development
 
-Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats and lints staged files.
+Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats, lints, and spell-checks staged files.
 
-`pnpm check` runs every check CI runs. Each one also runs on its own:
+`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title). Each one also runs on its own:
 
 | Command                        | Checks                                                                   |
 | ------------------------------ | ------------------------------------------------------------------------ |

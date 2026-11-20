@@ -12,7 +12,7 @@
     "check:format": "prettier --check .",
     "check:lint": "eslint .",
     "check:spelling": "cspell --no-progress --gitignore --dot .",
-    "check:shell": "shellcheck scripts/*.sh",
+    "check:shell": "SHELLCHECKJS_RELEASE=v0.11.0 shellcheck scripts/*.sh",
     "check:manifests": "claude plugin validate --strict .claude-plugin/plugin.json && claude plugin validate --strict .claude-plugin/marketplace.json",
     "check:links": "linkinator \"**/*.md\"",
     "check:workflow-timeouts": "node scripts/check-workflow-timeouts.mjs",
