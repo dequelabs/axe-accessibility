@@ -58,7 +58,7 @@ Every package the plugin launches with `npx`, and the Docker image it documents,
 
 Where the guidance and the server ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
-**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version (npm version and `v<version>` Docker image tag) and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE --exclude=CHANGELOG.md '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved. Users get the change with the next [release](#releasing).
+**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version (npm version and `v<version>` Docker image tag) and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE --exclude=CHANGELOG.md '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved. Users get the change with the next [release](RELEASING.md).
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -83,7 +83,7 @@ Once the plugin is accepted into the [Claude plugin directory](https://claude.co
 
 Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats, lints, and spell-checks staged files.
 
-`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title) and the [Release PR](#releasing) check. Each one also runs on its own:
+`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title) and the [Release PR](RELEASING.md) check. Each one also runs on its own:
 
 | Command                        | Checks                                                                         |
 | ------------------------------ | ------------------------------------------------------------------------------ |
@@ -96,22 +96,9 @@ Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the p
 | `pnpm check:workflow-timeouts` | Every GitHub Actions job sets `timeout-minutes`                                |
 | `pnpm test`                    | Tests for the repo's own scripts                                               |
 
-## Releasing
-
-Self-hosted marketplace users receive only released versions; the plugin directory is covered under [Publishing](#publishing). A merge to `main` ships no plugin code to the marketplace on its own: the plugin's version lives in `.claude-plugin/plugin.json`, and the marketplace entry in `.claude-plugin/marketplace.json` installs the plugin from that version's tag, `v<version>`.
-
-Anyone with write access can cut a release:
-
-1. In the **Actions** tab, run **Create release PR** on `main`. Choose `major`, `minor`, or `patch`, or leave it on `automatic` to pick the bump from the commits since the last release by the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) rules: a breaking change (`!` after the type, or a `BREAKING CHANGE:` footer) is major, a `feat` is minor, and anything else is a patch. Those rules apply below 1.0.0 too.
-2. The workflow opens a PR from `release-<version>` titled `chore(release): v<version>`. It sets the new version in `plugin.json`, moves the marketplace entry's `ref` to `v<version>`, adds a `CHANGELOG.md` entry built from the `feat` and `fix` commits, and lists the issues closed since the last release.
-3. Review and merge it like any other PR. CI runs on it. If other PRs merge into `main` while it is open, the release would ship them without listing them, so close it, delete its branch, and run **Create release PR** again.
-4. The merge runs the **Release** workflow, which tags the merge commit `v<version>` and publishes a GitHub release with the changelog entry as its notes.
-
-The **Release PR** check fails any other PR that changes the plugin version or the marketplace entry's `source`, including its `ref`, so versions move only through this flow. `pnpm release --dry-run --release-as "$(node scripts/release-type.mjs)"` previews locally the version and changelog entry that `automatic` would produce.
-
 ## Publishing
 
-Two distribution paths, not mutually exclusive. Each receives releases differently:
+Two distribution paths, not mutually exclusive. Each receives releases differently; [RELEASING.md](RELEASING.md) covers how to cut one:
 
 1. **Self-hosted marketplace** — this repo doubles as one. `/plugin marketplace add dequelabs/axe-accessibility` reads `.claude-plugin/marketplace.json` from `main`, and its entry installs the plugin from the latest release's tag, never from `main`. Changes to the entry's own metadata, such as its description, still reach users from `main` directly. Existing installs move to a new release when the user runs `claude plugin update axe-accessibility@deque`, or on their own if the user turned on auto-update for the `deque` marketplace; Claude Code replaces an install only when the version changes. Between merging a release PR and the **Release** workflow pushing the tag, usually under a minute, fresh installs fail and updates keep the previous version.
 2. **Claude plugin directory** — the community-driven directory that Claude Code exposes as the built-in `claude-plugins-official` marketplace. Submission requires a **public** GitHub repo (closed source is not accepted) and a passing validate:
