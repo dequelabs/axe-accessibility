@@ -12,6 +12,7 @@ flexbox
 focusability
 frontmatter
 infocus
+interactives
 labelledby
 linkinator
 ludeeus
@@ -24,6 +25,7 @@ respawns
 rgaa
 shellcheck
 tabindex
+TOTP
 unentitled
 unsets
 vnode

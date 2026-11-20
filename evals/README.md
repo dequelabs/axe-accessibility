@@ -9,7 +9,9 @@ These cases measure whether the plugin's skills change what an agent does with t
 | `no-guided-tests-unless-asked` | A plain scan request doesn't add guided tests, which consume credits                    |
 | `guided-tests-when-asked`      | A keyboard request runs only the keyboard guided test, through `analyze`                |
 
-The Axe MCP Server is never called. `mocks/axe-mcp-server/` answers `analyze` from a fixed scan of a made-up checkout page and has the judge model answer `remediate`. `_tools.json` gives the mocked tools the parameters the skills document; when the server pin changes, update it along with the skills.
+The Axe MCP Server is never called. `mocks/axe-mcp-server/` answers `analyze` from a fixed scan of a made-up checkout page, has the judge model answer `remediate`, and answers the deprecated `igt` tool so a case can fail an agent that calls it.
+
+`_tools.json` is the `tools/list` result captured from axe-mcp-server 1.6.0, so agents see the same tools, parameters, and descriptions as with the real server. When the server pin changes, capture it again: start the server through `scripts/start-axe-mcp-server.sh` with an Axe API key, send `tools/list`, and save its `tools` array as `{ "tools": [...] }`. Every tool in it needs a mock, or `pnpm test` fails.
 
 ## Running
 

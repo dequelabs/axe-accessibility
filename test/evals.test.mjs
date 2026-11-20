@@ -18,6 +18,9 @@ const servers = Object.keys(
 );
 const skills = readdirSync(join(root, "skills"));
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const tools = JSON.parse(
+  readFileSync(join(root, "evals/mocks/axe-mcp-server/_tools.json"), "utf8"),
+).tools.map((tool) => tool.name);
 
 function frontmatter(path) {
   const [, yaml] = readFileSync(path, "utf8").split(/^---$/m);
@@ -57,21 +60,48 @@ test("every case has at least one grader", () => {
   }
 });
 
-test("mocks stand in for the plugin's MCP server and its documented tools", () => {
+test("mocks stand in for the plugin's MCP server and its published tools", () => {
   assert.ok(mocks.length > 0, "no mocks found");
   for (const path of mocks) {
     const [server, file] = relative(evals, path).split("/").slice(-2);
     assert.ok(servers.includes(server), `${path}: unknown server ${server}`);
     assert.ok(
-      ["analyze.md", "remediate.md"].includes(file),
-      `${path}: not a tool the skills document`,
+      tools.includes(file.replace(/\.md$/, "")),
+      `${path}: not a tool in _tools.json`,
     );
+  }
+});
+
+test("every published tool has a shared mock, so no case can reach the real server", () => {
+  for (const tool of tools) {
+    assert.ok(
+      existsSync(join(evals, "mocks/axe-mcp-server", `${tool}.md`)),
+      `no mock for ${tool}`,
+    );
+  }
+});
+
+test("guided-test cases fail an agent that calls the deprecated igt tool", () => {
+  for (const name of [
+    "guided-tests-when-asked",
+    "no-guided-tests-unless-asked",
+  ]) {
+    const forbids = graders
+      .filter((path) => path.startsWith(join(evals, name, "graders/")))
+      .map(frontmatter)
+      .some(
+        (g) =>
+          g.type === "tool_used" &&
+          g.tool === `mcp__plugin_${plugin.name}_axe-mcp-server__igt` &&
+          g.max === 0,
+      );
+    assert.ok(forbids, `${name} doesn't forbid the igt tool`);
   }
 });
 
 test("graders name tools and skills that exist", () => {
   const toolName = new RegExp(
-    `^mcp__plugin_${plugin.name}_(${servers.join("|")})__(analyze|remediate)$`,
+    `^mcp__plugin_${plugin.name}_(${servers.join("|")})__(${tools.join("|")})$`,
   );
   for (const path of graders) {
     const grader = frontmatter(path);
