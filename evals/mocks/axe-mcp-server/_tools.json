@@ -1,0 +1,536 @@
+{
+  "tools": [
+    {
+      "name": "analyze",
+      "description": "Analyzes a webpage for accessibility issues using axe-devtools and returns a detailed violation report. Can also run Intelligent Guided Tests against the same page in the same call \u2014 see \"Guided tests\" below.\n\n        To scan pages that need setup (login, dismiss a banner, reach a specific view), pass an optional `before` array of interaction steps. Steps run after navigation and before the scan, in the same browser context, so cookies, storage, and route changes persist into the scan.\n\n        To control how the page is routed, or to land already authenticated, pass an optional `cookies` array. Cookies are set on the browser context BEFORE navigation, so they ride the very first request. Use them for environment-routing cookies (a staging / feature-branch selector an edge layer reads to decide what to serve) or a pre-authenticated session cookie. This is distinct from `before`, which runs AFTER navigation and so cannot influence how the initial request is routed.\n\n        Cookie fields:\n        - `name` (required) \u2014 cookie name. Appears in server logs and error messages; do NOT put sensitive values in the name. The secret goes in `value`.\n        - `value` (required) \u2014 cookie value. Treated as sensitive: never logged or echoed in errors.\n        - `domain` (required) \u2014 cookie domain. Set a leading-dot domain (e.g. `.example.com`) to share the cookie across subdomains.\n        - `path` (optional) \u2014 defaults to `/`.\n        - `sameSite` (optional) \u2014 \"Strict\", \"Lax\", or \"None\". \"None\" requires `secure: true`.\n        - `secure` (optional) \u2014 boolean.\n        - `httpOnly` (optional) \u2014 boolean.\n        - `expires` (optional) \u2014 Unix timestamp in seconds. Omit for a session cookie.\n\n        Resolving `cookies[*].value`:\n        Same policy as `before`'s `value` \u2014 see the \"Resolving `value`\" section below.\n\n        Actions:\n        - `{ action: \"click\",   selector }`        \u2014 click `selector` (CSS). Auto-waits for actionability.\n        - `{ action: \"fill\",    selector, value }` \u2014 type `value` into `selector`. `value` is sensitive: never logged or echoed.\n        - `{ action: \"waitFor\", selector, state? }` \u2014 wait for `selector` to reach `state` (\"visible\" default, \"attached\", \"hidden\", \"detached\").\n        - `{ action: \"wait\",    ms }`              \u2014 pause for `ms` milliseconds, then continue. Use only when nothing observable marks readiness. Total `wait` across all steps is capped at 10000ms; exceeding it rejects the request.\n\n        Selector rule (every action):\n        Use ONLY selectors the user provided in their request. Do not invent, guess, or copy selectors from the examples below. If a step needs a selector the user did not name, ask them.\n\n        When to add a `waitFor`:\n        After any `click` that triggers async navigation you need to scan (form submit, SPA route change, modal load). Pick a selector that exists ONLY in the post-interaction state \u2014 e.g. a logout button, a profile avatar, or the dashboard heading the user named. Generic selectors like `body`, `main`, `#app`, `#root`, or `h1` already exist on the pre-interaction page; they resolve instantly and the scan still races the wrong DOM. If the user did not name a destination element, ask. Skip `waitFor` for non-navigating clicks (cookie dismiss, accordion toggle) and for `fill`-only flows. Only use a `wait` when nothing observable marks readiness \u2014 a CSS transition finishing, a debounce timer firing, a canvas drawing itself; if an element appears, prefer a `waitFor` step: it is faster, self-documenting, and does not guess.\n\n        Resolving `value`:\n        The server treats `value` as a literal string. It does NOT read files, expand env vars, or interpret `${VAR}` / `$VAR` / `{{VAR}}`. You (the MCP client) must resolve the user's intent before calling:\n        - Literal in the request (\"admin/admin123\") \u2192 pass through.\n        - File reference (\".env.local\", \"config/test.json\") \u2192 read with your filesystem tools, pass the resolved value.\n        - Ambiguous or missing \u2192 ask the user. Never pass placeholder syntax as the value.\n\n        Out of scope: neither `before` nor `cookies` can SOLVE captchas, 2FA/TOTP/SMS challenges, or third-party SSO redirect chains \u2014 there is no way to complete an interactive challenge through this tool. The workaround: ask the user to authenticate once in a real browser, then provide the resulting session cookie (pass it via `cookies`) so the scan starts already authenticated. A staging URL that bypasses SSO also works.\n\n        Scoping the scan:\n        Set the optional `selector` argument when the user named a specific region to scan (\"scan #main\", \"check the nav\", \"analyze the footer\"). Omit `selector` to scan the whole page (today's default).\n        Format: axe-selector.\n        - A single CSS string targets an element in the top frame: `selector: \"#main\"`.\n        - An array of CSS strings traverses iframe / shadow-DOM boundaries; each segment selects the next host: `selector: [\"iframe#checkout\", \"#payment-form\"]`. Only use an array when the target is inside an iframe or shadow root the user named.\n        Do not infer scope from prose. If the user did not name a region, omit `selector`.\n        Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself.\n        Errors: if the selector matches no element, the tool returns an error rather than silently scanning the whole page.\n\n        Examples \u2014 scoped scans:\n\n        User: \"Scan #main on https://example.com.\"\n        \u2192 { url: \"https://example.com\", selector: \"#main\" }\n\n        User: \"Check the form inside the checkout iframe on https://shop.example.com \u2014 the iframe is iframe#checkout and the form is #payment-form.\"\n        \u2192 { url: \"https://shop.example.com\", selector: [\"iframe#checkout\", \"#payment-form\"] }\n\n        Examples \u2014 each tool call uses ONLY selectors the user named:\n\n        User: \"Check https://example.com for accessibility issues.\"\n        \u2192 { url: \"https://example.com\" }\n\n        User: \"Analyze http://localhost:3000 \u2014 fill #username and #password from .env.local, then wait for h1.\"\n        \u2192 {\n            url: \"http://localhost:3000\",\n            before: [\n              { action: \"fill\",    selector: \"#username\", value: \"billy\"   },  // resolved from .env.local\n              { action: \"fill\",    selector: \"#password\", value: \"hunter2\" },  // resolved from .env.local\n              { action: \"waitFor\", selector: \"h1\" }\n            ]\n          }\n\n        User: \"Scan https://staging.example.com \u2014 log in as admin/admin123 via #user and #pass, click button[type=submit], wait for #dashboard.\"\n        \u2192 {\n            url: \"https://staging.example.com\",\n            before: [\n              { action: \"fill\",    selector: \"#user\", value: \"admin\"    },\n              { action: \"fill\",    selector: \"#pass\", value: \"admin123\" },\n              { action: \"click\",   selector: \"button[type=submit]\" },\n              { action: \"waitFor\", selector: \"#dashboard\" }\n            ]\n          }\n\n        User: \"Scan https://app.example.com after clicking #cookie-dismiss.\"\n        \u2192 {\n            url: \"https://app.example.com\",\n            before: [{ action: \"click\", selector: \"#cookie-dismiss\" }]\n          }\n\n        User: \"Scan https://staging.example.com \u2014 set the `env-branch` cookie to `feature-1234` so the router serves my branch.\"\n        \u2192 {\n            url: \"https://staging.example.com\",\n            cookies: [{ name: \"env-branch\", value: \"feature-1234\", domain: \"staging.example.com\" }]\n          }\n\n        User: \"Analyze https://app.example.com \u2014 set my `session` cookie from .env.local so I land authenticated.\"\n        \u2192 {\n            url: \"https://app.example.com\",\n            cookies: [{ name: \"session\", value: \"eyJhbGci\u2026\", domain: \"app.example.com\" }]  // value resolved from .env.local\n          }\n\n        Screenshots:\n        Set `screenshot` only when the user explicitly asks to see/save/visualize the page. Attaching a screenshot is NOT free: every screenshot block costs image-input tokens on the next agent turn (roughly an order of magnitude more than the equivalent text). Do not default-attach.\n\n        Capture happens just before the scan runs and covers the visible viewport, not the full page; content below the fold is omitted. If the user wants to see more of the page, pass a tall `viewportHeight` (e.g. `viewportHeight: 4096`) so the visible area covers what they want to see.\n\n        Default format is PNG (lossless); set `{ format: \"jpeg\" }` if the user asks for JPEG. The image shows the page just before axe.run() started; DOM changes during the scan (SPA re-renders, animations, in-flight requests) are not reflected. Do not narrate visible-but-not-flagged elements as if they were what axe saw. Capture is best-effort: if it times out, the scan still returns and a note appears in `messages`.\n\n        User: \"Check https://example.com for accessibility issues and show me what the page looked like.\"\n        \u2192 { url: \"https://example.com\", screenshot: {} }\n\n        User: \"Scan https://example.com for accessibility violations and return the screenshot as a JPEG.\"\n        \u2192 { url: \"https://example.com\", screenshot: { format: \"jpeg\" } }\n\n        To also write the screenshot to disk, set `save: true` (server-chosen path) or `saveTo` (an absolute path); the location comes back in `messages`. Add `inline: false` to skip the inline image block, reducing the tokens consumed on the next turn and returning just the saved path; it takes effect only when the save succeeds.\n\n        User: \"Scan https://example.com and save the screenshot to /Users/me/Desktop/home.png.\"\n        \u2192 { url: \"https://example.com\", screenshot: { saveTo: \"/Users/me/Desktop/home.png\" } }\n\n        User: \"Scan https://example.com and save a screenshot to disk, but don't attach the image to the response.\"\n        \u2192 { url: \"https://example.com\", screenshot: { save: true, inline: false } }\n\n        Guided tests:\n        Set the optional `igtTools` array to also run Intelligent Guided Tests against the same page in the same call (e.g. [\"keyboard\"]). Each runs in sequence after the axe scan, and `data` becomes `{ axe: [...axe issues], igt: { \"<tool-name>\": {...} } }` \u2014 one `igt` entry per requested tool. Guided tests use AI and consume credits \u2014 request them only when the user asks for what they cover, never by default.\n        - `keyboard` \u2014 tabs through interactive elements and reports unreachable elements, focus traps, missing or insufficient focus indicators, wrong ARIA roles, and elements that submit forms on focus. Use for tab-order and keyboard-navigation requests.\n        - `interactive-elements` \u2014 evaluates buttons, links, and custom controls for missing or incorrect accessible name, role, or state. Use for accessible-name, role, and state audits.\n        - `modal` \u2014 inspects a modal dialog and reports focus containment and dialog semantics. Prefer `modalTriggerSelector` because it also assesses dismissibility and focus restoration; use `modalSelector` or a `before`-only run when there is no trigger to name. Pass `modalSelector` with a trigger too when you know the modal element: it is a fallback for a modal the guided test cannot identify. The result does not say whether the fallback was used, and a run that needed it assessed an element it could not recognize as a modal, so treat an empty `issues` list from such a run as weaker evidence. A run without a trigger terminates with \"dismissibility-unavailable\", so an empty `issues` list is not evidence the modal can be dismissed or that it restores focus.\n\n        Reading guided-test results (each tool reports independently):\n        - Check `status` first. `\"complete\"` carries `issues` and `igtElements`; `\"error\"` carries `error` \u2014 report it as \"the <tool> test failed: <message>\". A per-tool error does NOT make the overall call an error and never affects the axe results.\n        - The issue count is `issues.length`. `igtElements` is every element processed, NOT a list of issues; report entries with `analysisFailed: true` separately as elements that could not be analyzed.\n        - `terminatedReason`, when present, says why the run ended before every step completed, so results may be partial: `\"keyboard-trap\"` (a keyboard focus trap halted the run), `\"modal-not-detected\"` (no modal was found to assess), `\"modal-dismiss-failed\"` (the modal could not be dismissed during assessment), `\"dismissibility-unavailable\"` (the run had no trigger to work from (`modalSelector` or `before`-only targeting), so dismissibility was not assessed; expected on those modes rather than a failure), `\"focus-restoration-unavailable\"` (the run had no trigger to restore focus to, so focus restoration was not assessed; expected on the no-trigger modes rather than a failure), `\"trigger-not-resolved\"` (the `modalTriggerSelector` did not resolve to an element on the page, so no modal could be opened), `\"modal-selector-not-resolved\"` (the `modalSelector` matched no element on the page), `\"modal-selector-not-visible\"` (the `modalSelector` matched an element that was not visible; pass `before` if the modal opens from an interaction), `\"modal-fallback-not-resolved\"` (the `modalSelector` fallback matched no element on the page; check it names the modal the trigger opens), `\"modal-fallback-not-visible\"` (the `modalSelector` fallback matched an element that was not visible; check it names the modal the trigger opens), `\"insufficient-credits\"` (the account ran out of credits), `\"subscription-missing\"` (the account lacks the Axe DevTools for Web subscription required for the guided test). It is not an error and never affects the axe results.\n\n        Returns AxeResults: violations, passes, incomplete, inapplicable, plus run metadata (engine, runner, environment). When `screenshot` is set, an image content block is included in the response. When `igtTools` is set, `data` becomes `{ axe, igt }`, with guided-test results keyed by tool name.\n\n        The server returns a spec-valid image content block; whether it renders inline is up to the client. Some MCP clients don't render inline images, so the screenshot may not appear even though the scan succeeded.\n\n        Phased candidate selection (interactive-elements only): by default the interactive-elements IGT analyzes every detected element in one call. To let the user pick which elements are analyzed \u2014 and avoid spending AI credits on elements they don't care about \u2014 use the optional two-call handshake. It runs ONLY when `igtTools` is exactly `[\"interactive-elements\"]`.\n        1. First call: pass `interactive: true` (and no `sessionID`). The axe scan runs as usual; the interactive-elements IGT detects candidates but does NO AI analysis. Response: `{ data: { axe: [...axe issues], igt: { \"interactive-elements\": { status: \"needs_selection\", sessionID, candidates, componentGroups? } } } }`. Each candidate has a `vnodeId` (its identifier), `role`, accessible `name`, and `state`. Present the candidates to the user and let them choose.\n        2. Second call: pass the `sessionID` from step 1 and `selectedIDs` \u2014 the `vnodeId`s of the chosen candidates. The tool resumes the SAME run (no re-detection, no re-navigation) and returns `{ data: { igt: { \"interactive-elements\": { status: \"complete\", ... } } } }` for exactly those elements. Note: `data.axe` is OMITTED on the resume call \u2014 the axe results were returned on the first call and the paused browser context has not changed. All other analyze params on the resume call (viewportWidth/Height, cookies, before, chromePath, selector, advancedRules, screenshot) are ignored because the paused browser context is reused.\n        - `selectedIDs` must be a subset of the `vnodeId`s returned in step 1. If any id was not offered, the tool returns `{ status: \"invalid_selection\", error, unknownIDs }` and leaves the run paused \u2014 retry the second call with only offered ids.\n        - If `sessionID` is unknown or the paused run has expired (it is reclaimed after a few minutes of inactivity), the tool returns `{ status: \"session_expired\", error }`; start over with a fresh `interactive: true` call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL of the page to analyze"
+          },
+          "viewportWidth": {
+            "description": "Viewport width in pixels (e.g. 375 for mobile, 1280 for desktop). When provided without viewportHeight, height defaults to 1080.",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 7680
+          },
+          "viewportHeight": {
+            "description": "Viewport height in pixels (e.g. 812 for mobile, 1080 for desktop). Requires viewportWidth to be set.",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 7680
+          },
+          "before": {
+            "description": "Optional interaction steps to run after navigation and before the scan. See the `before` section in this tool's description for semantics and resolution policy.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "click"
+                    },
+                    "selector": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024,
+                      "description": "CSS selector identifying the target element. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead."
+                    }
+                  },
+                  "required": ["action", "selector"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "fill"
+                    },
+                    "selector": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024,
+                      "description": "CSS selector identifying the target element. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead."
+                    },
+                    "value": {
+                      "type": "string",
+                      "maxLength": 10000,
+                      "description": "Literal string to type. Treated as sensitive: never logged or echoed in errors. Empty string clears the input."
+                    }
+                  },
+                  "required": ["action", "selector", "value"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "waitFor"
+                    },
+                    "selector": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024,
+                      "description": "CSS selector for the element to wait for. Only set when the user explicitly named an element to wait for AND it appears via async work Playwright's auto-wait won't cover. If unsure, omit the entire waitFor step \u2014 a wrong selector will time out and fail the scan. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead."
+                    },
+                    "state": {
+                      "description": "Element state to wait for. Defaults to `visible`.",
+                      "type": "string",
+                      "enum": ["visible", "attached", "hidden", "detached"]
+                    }
+                  },
+                  "required": ["action", "selector"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "wait"
+                    },
+                    "ms": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5000,
+                      "description": "Pause duration in milliseconds (1-5000). Only use a `wait` when nothing observable marks readiness \u2014 a CSS transition finishing, a debounce timer firing, a canvas drawing itself; if an element appears, prefer a `waitFor` step: it is faster, self-documenting, and does not guess. This pause is additive to the automatic post-interaction settle, not a replacement for it."
+                    }
+                  },
+                  "required": ["action", "ms"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "screenshot": {
+            "description": "When set, capture a viewport screenshot just before the scan runs and return it alongside the violation report as an MCP image content block. The image shows the page as it was the moment before axe.run() started; DOM changes that happen during the scan (re-renders from MutationObserver, useEffect, animations, in-flight requests) won't be reflected. On SPAs this skew is common, so do not narrate visible-but-not-flagged elements as if they were what axe saw. Set `save` or `saveTo` to also persist the image to disk (in a Docker deployment the file lands inside the container and needs a mounted volume to reach the host). Persisting and `inline: false` apply to successful scans only: if the scan fails, the captured image is returned inline alongside the error regardless of `inline` and is never written to disk. Omit (or do not set) to skip capture; behavior is identical to omitting the option.",
+            "type": "object",
+            "properties": {
+              "format": {
+                "default": "png",
+                "description": "Image encoding for the captured screenshot. PNG is lossless; JPEG is smaller for photo-heavy pages.",
+                "type": "string",
+                "enum": ["png", "jpeg"]
+              },
+              "save": {
+                "description": "When true, also write the screenshot to disk under a generated filename in the server's screenshot directory (AXE_SCREENSHOT_DIR, default OS temp). The saved path is reported in the response's `messages`. Ignored when `saveTo` is set. Useful when the MCP client does not render the inline image. Applies to successful scans only: if the scan fails, the captured image is returned inline alongside the error and is not written to disk.",
+                "type": "boolean"
+              },
+              "saveTo": {
+                "description": "Absolute file path to write the screenshot to. If it points at an existing directory, a generated filename is written inside it. Implies saving, so `save` is not required. The written path is reported in the response's `messages`.",
+                "type": "string",
+                "minLength": 1
+              },
+              "inline": {
+                "description": "Whether to attach the screenshot as an inline image block in the response (default true). Set false to skip the inline image and reduce the tokens consumed on the next turn. Only takes effect when the screenshot is also saved via `save` or `saveTo`, and only when that save succeeds; otherwise the image is still returned inline so the capture isn't lost.",
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "selector": {
+            "description": "Optional axe-selector scoping the scan to a region instead of the whole page. Pass a single CSS string for a top-frame element (e.g. \"#main\") or an array for iframe / shadow-DOM traversal (e.g. [\"iframe#x\", \"#target\"]). Omit to scan the full page. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "pattern": "\\S"
+              },
+              {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024,
+                  "pattern": "\\S"
+                }
+              }
+            ]
+          },
+          "cookies": {
+            "description": "Optional cookies to inject into the browser context before navigation. See the `cookies` section in this tool's description for semantics and resolution policy.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Cookie name. Appears in server logs and error messages; do NOT embed sensitive values \u2014 put secrets in `value`."
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 10000,
+                  "description": "Cookie value. Treated as sensitive: never logged or echoed in errors."
+                },
+                "domain": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Cookie domain (e.g. \"example.com\" or \".example.com\" for subdomains). Required \u2014 scope must be explicit."
+                },
+                "path": {
+                  "description": "Cookie path. Defaults to `/` if omitted.",
+                  "type": "string"
+                },
+                "sameSite": {
+                  "description": "`\"None\"` requires `secure: true`.",
+                  "type": "string",
+                  "enum": ["Strict", "Lax", "None"]
+                },
+                "secure": {
+                  "type": "boolean"
+                },
+                "httpOnly": {
+                  "type": "boolean"
+                },
+                "expires": {
+                  "description": "Unix timestamp in seconds. Omit for a session cookie.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["name", "value", "domain"],
+              "additionalProperties": false
+            }
+          },
+          "advancedRules": {
+            "description": "Advanced Rules preset for this scan. Accepts 'precise' (90%), 'balanced' (70%), 'thorough' (50%), or 'disabled'. Resolved value is reported in the response's `advancedRules` block.",
+            "type": "string"
+          },
+          "igtTools": {
+            "description": "Optional Intelligent Guided Tests to run against the same page after the axe scan. When set, the response's `data` becomes `{ axe: [...], igt: {...} }`; see the \"Guided tests\" section of this tool's description for semantics and per-tool result shape. Accepts: [\"keyboard\",\"interactive-elements\",\"modal\"].",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["keyboard", "interactive-elements", "modal"]
+            }
+          },
+          "chromePath": {
+            "description": "Optional path to a Chrome/Chromium binary to use instead of the playwright-managed install (e.g. '/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'). Branded Google Chrome stable 137+ is not supported \u2014 use Chrome for Testing or another Chromium-compatible binary. Overrides AXE_CHROME_PATH when both are set. Not supported in Docker.",
+            "type": "string"
+          },
+          "includeSelectors": {
+            "description": "Optional CSS selectors that scope the interactive-elements IGT to matching candidates. Distinct from analyze's `selector`: `selector` scopes the axe scan region, whereas `includeSelectors` filters which detected interactives IE analyzes. Requires `igtTools` to include \"interactive-elements\". Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          },
+          "modalTriggerSelector": {
+            "description": "Optional axe-selector naming the element that opens the modal, so the modal IGT targets that modal directly instead of inferring which one to inspect. Pass a single CSS string for a top-frame trigger (e.g. \"#open-dialog\") or an array for iframe traversal (e.g. [\"iframe#app\", \"#open-dialog\"]). Use `before` to reach the page state, not to open the modal, because the guided test clicks the trigger itself and a second click closes the modal. Pass `modalSelector` too when you know the modal element, as a fallback if the opened modal cannot be identified. Distinct from analyze's `selector`, which scopes the axe scan region. Requires `igtTools` to include \"modal\". Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            ]
+          },
+          "modalSelector": {
+            "description": "Axe-selector for the modal element itself, not its trigger. CSS string for a top-frame modal (\"#dialog\"), or an array of path segments for iframes ([\"iframe#app\", \"#dialog\"]). On its own, the modal IGT assesses it directly with no trigger interaction, and `before` opens the modal first if it is not open at load. Passed with `modalTriggerSelector` it is instead only a fallback if the opened modal cannot be identified; in that pairing do not open the modal yourself, at load or via `before`, because the guided test clicks the trigger and a second open toggles it shut. Distinct from analyze's `selector`, which scopes the axe scan region. Requires `igtTools` to include \"modal\". Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            ]
+          },
+          "interactive": {
+            "description": "Opt in to phased candidate selection for the interactive-elements IGT: the call runs the axe scan, detects candidates without any AI analysis, and returns them plus a `sessionID` for a follow-up call. Only valid when `igtTools` is exactly [\"interactive-elements\"]. See this tool's description.",
+            "type": "boolean"
+          },
+          "sessionID": {
+            "description": "Resume handle from a prior `interactive: true` call. Pass it with `selectedIDs` to resume that paused run and analyze the chosen subset. On the resume call, `data.axe` is omitted \u2014 the axe results were returned on the first call. The `url` is still required and validated on every resume call (echoed back on session-not-found paths), but every other analyze param on the resume call (viewportWidth/Height, cookies, before, chromePath, selector, advancedRules, screenshot) is silently ignored because the paused browser context is reused.",
+            "type": "string"
+          },
+          "selectedIDs": {
+            "description": "The `vnodeId`s of the candidates to analyze on a resume call. Must be a subset of the candidates returned by the matching `sessionID`'s first call, with no duplicates. Requires `sessionID`.",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": ["url"]
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "remediate",
+      "description": "Generate remediation guidance for one or more axe-core violations. Pass ALL issues from a single analyze call together in one request \u2014 do NOT call this tool once per issue. Supply a unique 'id' string for each issue (e.g. the rule ID plus a counter: 'color-contrast-0') so results can be correlated back to inputs.\n\n      User Request Examples:\n      - \"Can you fix the accessibility issues you just reported?\"\n      - \"Generate remediation suggestions for the issues found in the axe devtools scan\"\n\n      Returns an array of per-issue results, each containing:\n      - id: the caller-supplied id echoed back for correlation\n      - status: \"ok\" or \"error\"\n      - remediation (on success): general description, remediation steps, and code fix\n      - error (on failure): code and message",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "minItems": 1,
+            "maxItems": 25,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "A string you invent to identify this issue within the batch (e.g. the rule ID plus a counter: 'color-contrast-0'). Must be unique within this call \u2014 used only to correlate results back to inputs."
+                },
+                "rule": {
+                  "type": "string",
+                  "description": "The axe rule ID from the analyze or igt tool's output (e.g., 'color-contrast', 'button-name', 'keyboard-trap'). Maps to the 'rule' field on each issue."
+                },
+                "elementHtml": {
+                  "type": "string",
+                  "description": "The HTML snippet of the violating element. Maps to the 'source' field on each issue from the analyze or igt tool's output."
+                },
+                "remediation": {
+                  "type": "string",
+                  "description": "A description of what's wrong and what needs to be fixed. Anchor on the issue's 'summary' (present on both analyze and igt output, and where the per-issue actionable detail lives). For analyze issues, also fold in 'description' and 'helpText'; for igt issues, fold in 'aiReasoning' when present."
+                },
+                "pageUrl": {
+                  "description": "The URL of the page being remediated. Use the 'pageUrl' field from the analyze tool's response.",
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": ["id", "rule", "elementHtml", "remediation"]
+            },
+            "description": "One or more axe-core violations to remediate. Pass ALL issues from a single analyze call together \u2014 do NOT call this tool once per issue. Min 1, max 25."
+          }
+        },
+        "required": ["issues"]
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "igt",
+      "title": "IGT (Deprecated)",
+      "description": "DEPRECATED \u2014 do not use. Use the `analyze` tool's `igtTools` parameter instead \u2014 it runs the same guided tests against the same page in a single call. This tool remains functional only for backward compatibility and will be removed in a future release.\n\n      Runs one or more automated Intelligent Guided Tests (IGT) on a webpage using axe DevTools. Pass an array of IGT tools to run (e.g. [\"keyboard\",\"interactive-elements\",\"modal\"]) \u2014 each tool is run in sequence and results are returned keyed by tool name.\n\n      The keyboard IGT tabs through all interactive elements on the page, records tab stops, and checks for keyboard accessibility issues including:\n      - Elements inaccessible by keyboard\n      - Elements that trap keyboard focus\n      - Missing or incorrect ARIA roles on interactive elements\n      - Focus indicators that are missing or insufficient\n      - Elements that submit forms on focus\n\n      Use when the user wants to test keyboard accessibility, check tab order, or verify keyboard navigation on a page.\n\n      The interactive-elements IGT detects buttons, links, and custom controls on the page, uses AI to evaluate their accessible name, role, and state, and reports elements that have incorrect or missing accessible name/role/state assignments. It checks for:\n      - Interactive elements with missing or incorrect accessible names\n      - Interactive elements with wrong or missing ARIA roles\n      - Interactive elements whose accessible state does not match their visual state\n\n      Use when the user wants to audit interactive element accessibility, verify accessible names and roles, or check buttons and links on a page.\n\n      The modal IGT inspects a modal dialog on the page and reports structural problems with it. It checks for:\n      - Focus-trap detection: whether keyboard focus is correctly contained within the modal while it is open\n      - Dialog semantics: `aria-modal` and the role of the modal container\n\n      Prefer `modalTriggerSelector` when a trigger exists, falling back to `modalSelector` or the `before` array when there is none.\n\n      Pass `modalSelector` alongside `modalTriggerSelector` whenever you know the modal element. The trigger still drives the run (dismissibility and focus restoration are still assessed); the modal selector is used only if the opened modal cannot be identified, and goes unused otherwise. Do not pass both for a modal that is already open when the guided test starts \u2014 open at load, or opened by a `before` step \u2014 because the guided test clicks the trigger, which for an open modal usually closes it or navigates away.\n\n      Important: the result does not say whether the fallback was used. A run that needed it assessed an element the guided test could not recognize as a modal \u2014 usually non-standard markup \u2014 so an empty `issues` list from a run that supplied both selectors is weaker evidence than one from a trigger-only run. Say so when reporting such a run.\n\n      Important: A run without a trigger checks structure only and terminates with \"dismissibility-unavailable\" even when successful (this is expected). An empty `issues` list means no structural problems were found, but dismissibility and focus restoration remain untested. Report this as a structural check and state that dismissibility and focus restoration were not assessed.\n\n      Use when the user wants to check a modal dialog's focus containment and dialog semantics.\n\n      To test pages that need setup (login, dismiss a banner, reach a specific view), pass an optional `before` array of interaction steps. Steps run after navigation and before the guided test triggers, in the same browser context, so cookies, storage, and route changes persist into the test.\n\n      Actions:\n      - `{ action: \"click\",   selector }`        \u2014 click `selector` (CSS). Auto-waits for actionability.\n      - `{ action: \"fill\",    selector, value }` \u2014 type `value` into `selector`. `value` is sensitive: never logged or echoed.\n      - `{ action: \"waitFor\", selector, state? }` \u2014 wait for `selector` to reach `state` (\"visible\" default, \"attached\", \"hidden\", \"detached\").\n\n      Selector rule (every action): use ONLY selectors the user provided. Do not invent or guess selectors. If a step needs a selector the user did not name, ask them.\n\n      Resolving `value`: the server treats `value` as a literal string \u2014 it does NOT read files, expand env vars, or interpret `${VAR}` / `$VAR` / `{{VAR}}`. Resolve the user's intent (literal, file reference, or ask) before calling. Never pass placeholder syntax as the value.\n\n      Response shape:\n      {\n        data: {\n          \"<toolName>\": {           // e.g. \"keyboard\"\n            status: \"complete\",\n            issues: Issue[],        // accessibility problems found (may be empty)\n            igtElements: Element[], // all elements the IGT processed; entries with analysisFailed: true could not be analyzed by AI\n            terminatedReason?: \"keyboard-trap\" | \"modal-not-detected\" | \"modal-dismiss-failed\" | \"dismissibility-unavailable\" | \"focus-restoration-unavailable\" | \"trigger-not-resolved\" | \"modal-selector-not-resolved\" | \"modal-selector-not-visible\" | \"modal-fallback-not-resolved\" | \"modal-fallback-not-visible\" | \"insufficient-credits\" | \"subscription-missing\"\n          } | {\n            status: \"error\",\n            error: string           // present when the individual tool failed; isError on the overall response is still false\n          }\n        },\n        pageUrl: string\n      }\n\n      IMPORTANT \u2014 two arrays, two different things:\n      - issues: the list of accessibility problems detected. The issue count is issues.length. Each entry is one problem on one element. Do NOT use igtElements.length as the issue count.\n      - igtElements: all elements the IGT processed. Each entry is trimmed to identifying fields only: vnodeId, selector, tagName, role, accessibleName, states, and analysisFailed (present only when the element carried them). Entries with analysisFailed: true could not be analyzed by AI \u2014 mention these separately as \"elements that could not be analyzed\". They are not issues.\n\n      IMPORTANT \u2014 per-tool status:\n      - Always check status before accessing fields: issues and igtElements are only present when status === \"complete\"; error is only present when status === \"error\".\n      - A per-tool status of \"error\" means that individual tool failed. The overall isError field is still false in this case.\n      - Report per-tool failures to the user as \"the <toolName> test failed: <error message>\".\n\n      When presenting results:\n      - Report the number of issues found as issues.length (e.g. \"Found 3 keyboard accessibility issues\").\n      - Surface each entry in issues to the user with its description and selector.\n      - If any igtElements have analysisFailed: true, mention the count as elements that could not be analyzed.\n      - If terminatedReason is present, the test stopped early and results may be partial. Tell the user why: \"keyboard-trap\" means a keyboard focus trap halted the run; \"modal-not-detected\" means no modal was found to assess; \"modal-dismiss-failed\" means the modal could not be dismissed during assessment; \"dismissibility-unavailable\" means the run had no trigger to work from (`modalSelector` or `before`-only targeting), so dismissibility was not assessed; expected on those modes rather than a failure; \"focus-restoration-unavailable\" means the run had no trigger to restore focus to, so focus restoration was not assessed; expected on the no-trigger modes rather than a failure; \"trigger-not-resolved\" means the `modalTriggerSelector` did not resolve to an element on the page, so no modal could be opened; \"modal-selector-not-resolved\" means the `modalSelector` matched no element on the page; \"modal-selector-not-visible\" means the `modalSelector` matched an element that was not visible; pass `before` if the modal opens from an interaction; \"modal-fallback-not-resolved\" means the `modalSelector` fallback matched no element on the page; check it names the modal the trigger opens; \"modal-fallback-not-visible\" means the `modalSelector` fallback matched an element that was not visible; check it names the modal the trigger opens; \"insufficient-credits\" means the account ran out of credits; \"subscription-missing\" means the account lacks the Axe DevTools for Web subscription required for the guided test.\n\n      Phased candidate selection (interactive-elements only): by default the interactive-elements IGT analyzes every detected element in one call. To let the user pick which elements are analyzed \u2014 and avoid spending AI credits on elements they don't care about \u2014 use the optional two-call handshake. It runs ONLY when igtTools is exactly [\"interactive-elements\"].\n      1. First call: pass `interactive: true` (and no `sessionID`). The tool detects candidates, runs NO AI analysis, and returns `{ status: \"needs_selection\", sessionID, candidates, componentGroups? }`. Each candidate has a `vnodeId` (its identifier), `role`, accessible `name`, and `state`; `componentGroups` groups candidates to aid the choice. Present the candidates to the user and let them choose.\n      2. Second call: pass the `sessionID` from step 1 and `selectedIDs` \u2014 the `vnodeId`s of the chosen candidates. The tool resumes the SAME run (no re-detection) and returns a normal `{ status: \"complete\", ... }` result for exactly those elements.\n      - `selectedIDs` must be a subset of the `vnodeId`s returned in step 1. If any id was not offered, the tool returns `{ status: \"invalid_selection\", error, unknownIDs }` and leaves the run paused \u2014 retry the second call with only offered ids.\n      - If `sessionID` is unknown or the paused run has expired (it is reclaimed after a few minutes of inactivity), the tool returns `{ status: \"session_expired\", error }`; start over with a fresh `interactive: true` call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL of the page to run IGT on"
+          },
+          "igtTools": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["keyboard", "interactive-elements", "modal"]
+            },
+            "description": "The IGT tools to run (e.g. [\"keyboard\",\"interactive-elements\",\"modal\"])"
+          },
+          "chromePath": {
+            "description": "Optional path to a Chrome/Chromium binary to use instead of the playwright-managed install (e.g. '/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'). Branded Google Chrome stable 137+ is not supported \u2014 use Chrome for Testing or another Chromium-compatible binary. Overrides AXE_CHROME_PATH when both are set. Not supported in Docker.",
+            "type": "string"
+          },
+          "before": {
+            "description": "Optional interaction steps to run after navigation and before the guided test triggers. See the `before` section in this tool's description for semantics and resolution policy.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "click"
+                    },
+                    "selector": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024,
+                      "description": "CSS selector identifying the target element. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead."
+                    }
+                  },
+                  "required": ["action", "selector"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "fill"
+                    },
+                    "selector": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024,
+                      "description": "CSS selector identifying the target element. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead."
+                    },
+                    "value": {
+                      "type": "string",
+                      "maxLength": 10000,
+                      "description": "Literal string to type. Treated as sensitive: never logged or echoed in errors. Empty string clears the input."
+                    }
+                  },
+                  "required": ["action", "selector", "value"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "waitFor"
+                    },
+                    "selector": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024,
+                      "description": "CSS selector for the element to wait for. Only set when the user explicitly named an element to wait for AND it appears via async work Playwright's auto-wait won't cover. If unsure, omit the entire waitFor step \u2014 a wrong selector will time out and fail the scan. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead."
+                    },
+                    "state": {
+                      "description": "Element state to wait for. Defaults to `visible`.",
+                      "type": "string",
+                      "enum": ["visible", "attached", "hidden", "detached"]
+                    }
+                  },
+                  "required": ["action", "selector"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "const": "wait"
+                    },
+                    "ms": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5000,
+                      "description": "Pause duration in milliseconds (1-5000). Only use a `wait` when nothing observable marks readiness \u2014 a CSS transition finishing, a debounce timer firing, a canvas drawing itself; if an element appears, prefer a `waitFor` step: it is faster, self-documenting, and does not guess. This pause is additive to the automatic post-interaction settle, not a replacement for it."
+                    }
+                  },
+                  "required": ["action", "ms"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "includeSelectors": {
+            "description": "Optional CSS selectors that scope the interactive-elements IGT to matching candidates. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          },
+          "modalTriggerSelector": {
+            "description": "Optional axe-selector naming the element that opens the modal, so the modal IGT targets that modal directly instead of inferring which one to inspect. Pass a single CSS string for a top-frame trigger (e.g. \"#open-dialog\") or an array for iframe traversal (e.g. [\"iframe#app\", \"#open-dialog\"]). Use `before` to reach the page state, not to open the modal, because the guided test clicks the trigger itself and a second click closes the modal. Pass `modalSelector` too when you know the modal element, as a fallback if the opened modal cannot be identified. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            ]
+          },
+          "modalSelector": {
+            "description": "Axe-selector for the modal element itself, not its trigger. CSS string for a top-frame modal (\"#dialog\"), or an array of path segments for iframes ([\"iframe#app\", \"#dialog\"]). On its own, the modal IGT assesses it directly with no trigger interaction, and `before` opens the modal first if it is not open at load. Passed with `modalTriggerSelector` it is instead only a fallback if the opened modal cannot be identified; in that pairing do not open the modal yourself, at load or via `before`, because the guided test clicks the trigger and a second open toggles it shut. Selectors appear in server logs and error messages; do not embed sensitive values (passwords, tokens, PII) in the selector itself \u2014 e.g. avoid attribute selectors like `[data-password=\"\u2026\"]`. Put sensitive input in a `fill` action's `value` instead.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            ]
+          },
+          "interactive": {
+            "description": "Opt in to phased candidate selection for the interactive-elements IGT: the call detects candidates, runs no AI analysis, and returns them plus a sessionID for a follow-up call. Only valid when igtTools is exactly [\"interactive-elements\"]. See this tool's description.",
+            "type": "boolean"
+          },
+          "sessionID": {
+            "description": "Resume handle from a prior `interactive: true` call. Pass it with `selectedIDs` to resume that paused run and analyze the chosen subset.",
+            "type": "string"
+          },
+          "selectedIDs": {
+            "description": "The `vnodeId`s of the candidates to analyze on a resume call. Must be a subset of the candidates returned by the matching `sessionID`'s first call, with no duplicates. Requires `sessionID`.",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": ["url", "igtTools"]
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ]
+}

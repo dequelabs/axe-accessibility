@@ -16,6 +16,7 @@
     "check:links": "linkinator \"**/*.md\"",
     "check:workflow-timeouts": "node scripts/check-workflow-timeouts.mjs",
     "test": "node --test",
+    "evals": "claude plugin eval . --trust-plugin --no-publish --model claude-sonnet-5 --judge-model claude-haiku-4-5-20251001 --max-cost-usd 10",
     "fmt": "prettier --write .",
     "prepare": "husky",
     "pre-commit": "lint-staged"
