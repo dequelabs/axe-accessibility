@@ -79,5 +79,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/deps
-      - run: pnpm test
       - run: pnpm run check:workflow-timeouts
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/deps
+      - run: pnpm test
