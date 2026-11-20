@@ -4,7 +4,7 @@ This repo is Deque's `axe-accessibility` Claude Code plugin, and it doubles as t
 
 ## Checks
 
-Run `pnpm install` once (Node from `.nvmrc`, pnpm via `corepack enable`). Then:
+Run `pnpm install` once (Node from `.nvmrc`, pnpm via `corepack enable`). Shell state may not persist between your commands, so select the `.nvmrc` Node version (for example `nvm use`) in each one. Then:
 
 - `pnpm check` runs everything below, as CI does. Run it before you finish.
 - `pnpm fmt` fixes formatting.

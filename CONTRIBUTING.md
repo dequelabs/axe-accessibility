@@ -8,7 +8,7 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 
 ## Setup
 
-1. Install the Node version in [`.nvmrc`](.nvmrc) (for example `nvm install`).
+1. Install the Node version in [`.nvmrc`](.nvmrc) (for example `nvm install`), and use it in every new shell (for example `nvm use`).
 2. Run `corepack enable`. It provides the pnpm version pinned in `packageManager` in [`package.json`](package.json).
 3. Install [ShellCheck](https://github.com/koalaman/shellcheck#installing) (for example `brew install shellcheck`). `pnpm check:shell` uses it; CI runs it through a pinned GitHub Action.
 4. Run `pnpm install`. It also installs the pre-commit hook.
