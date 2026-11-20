@@ -32,7 +32,7 @@ Deque's accessibility toolkit for coding agents — get set up fast and teach yo
     ```
 
     If a scan ever fails with `Chromium is not installed`, run the install command that error message prints, exactly as printed — it names the version the running server expects. See [Choosing a Distribution](https://docs.deque.com/devtools-server/4.0.0/en/choosing-a-distribution) for Linux system-library notes.
-  - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:latest`, pulled automatically on first launch (no `docker login` required).
+  - **Docker:** Docker installed and running. The server is the public image `dequesystems/axe-mcp-server:v1.6.0`, pulled automatically on first launch (no `docker login` required).
 - For **OAuth** on either distribution: Node.js 22 LTS+ (the config runs `npx -y @deque/axe-auth@1.6.0`).
 
 ## Distributions
@@ -41,11 +41,11 @@ The plugin defaults to **npm**, which is the lower-friction path for local devel
 
 | | npm (default) | Docker |
 |---|---|---|
-| Command | `npx -y axe-mcp-server@1.6.0` | `docker run … dequesystems/axe-mcp-server:latest` |
+| Command | `npx -y axe-mcp-server@1.6.0` | `docker run … dequesystems/axe-mcp-server:v1.6.0` |
 | Requires | Node >= 22.19.0 | Docker daemon running |
 | Browser | one-time Chromium install, Playwright pinned to the server's version | bundled in the image |
 | Reaching `localhost` | direct | needs `--add-host=host.docker.internal:host-gateway`, and a dev server bound to `0.0.0.0` |
-| Updates | with each plugin release (pinned `1.6.0`) | re-pull `:latest` manually |
+| Updates | with each plugin release (pinned `1.6.0`) | edit the tag in your config after each plugin release (pinned `v1.6.0`) |
 | `AXE_CHROME_PATH` | supported | **fails at startup** |
 | Best for | local development | isolation, CI images, no Node toolchain |
 
@@ -53,11 +53,11 @@ The plugin defaults to **npm**, which is the lower-friction path for local devel
 
 ### Why the server is pinned to `1.6.0`
 
-Every package the plugin launches with `npx` is pinned to an exact version, so what a user installs is exactly what was reviewed for the plugin directory — a range or `@latest` could pull code that was never scanned. The pin also keeps the server in step with the guidance: the skills document the server's response shapes — for example, guided-test results arriving under `data.igt`, keyed by tool name — and agents follow them literally.
+Every package the plugin launches with `npx`, and the Docker image it documents, is pinned to an exact version, so what a user installs is exactly what was reviewed for the plugin directory — a range, `@latest`, or `:latest` could pull code that was never scanned. The pin also keeps the server in step with the guidance: the skills document the server's response shapes — for example, guided-test results arriving under `data.igt`, keyed by tool name — and agents follow them literally.
 
 Where the guidance and the server ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
-**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved, then bump the plugin version.
+**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version (npm version and `v<version>` Docker image tag) and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved, then bump the plugin version.
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
