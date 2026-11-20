@@ -27,14 +27,9 @@ const commits = run("git", [
 
 const prs = new Set();
 for (const sha of commits) {
-  let pulls;
-  try {
-    pulls = JSON.parse(
-      run("gh", ["api", `repos/${repo}/commits/${sha}/pulls`]),
-    );
-  } catch {
-    continue;
-  }
+  const pulls = JSON.parse(
+    run("gh", ["api", `repos/${repo}/commits/${sha}/pulls`]),
+  );
   for (const { number, merged_at } of pulls) {
     if (merged_at) prs.add(String(number));
   }
@@ -42,14 +37,9 @@ for (const sha of commits) {
 
 const issues = new Set();
 for (const pr of prs) {
-  let references;
-  try {
-    references = JSON.parse(
-      run("gh", ["pr", "view", pr, "--json", "closingIssuesReferences"]),
-    ).closingIssuesReferences;
-  } catch {
-    continue;
-  }
+  const references = JSON.parse(
+    run("gh", ["pr", "view", pr, "--json", "closingIssuesReferences"]),
+  ).closingIssuesReferences;
   for (const { number, repository } of references ?? []) {
     const closedIn = `${repository.owner.login}/${repository.name}`;
     issues.add(closedIn === repo ? `#${number}` : `${closedIn}#${number}`);

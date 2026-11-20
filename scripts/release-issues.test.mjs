@@ -17,6 +17,10 @@ const commitPulls = args[0] === "api" && args[1].match(/^repos\\/dequelabs\\/axe
 if (commitPulls) {
   const subject = execFileSync("git", ["log", "-1", "--format=%s", commitPulls[1]], { encoding: "utf8" }).trim();
   const listed = JSON.parse(process.env.FAKE_GH_COMMITS || "{}")[subject];
+  if (listed === "error") {
+    console.error("HTTP 403: API rate limit exceeded");
+    process.exit(1);
+  }
   const merged = (subject.match(/\\(#(\\d+)\\)$/) || []).slice(1).map((n) => ({ number: Number(n), merged_at: "2026-12-01T00:00:00Z" }));
   console.log(JSON.stringify(listed ?? merged));
   process.exit(0);
@@ -92,13 +96,34 @@ test("qualifies issues in other repositories", () => {
   assert.equal(result.stdout, "- dequelabs/axe-mcp-server#1566\n");
 });
 
-test("skips commits without a PR number and PRs gh can't read", () => {
+test("skips commits that belong to no PR", () => {
   const result = run({
-    commits: ["chore: Direct push", "feat: Gone (#99)", "fix: Real (#21)"],
+    commits: ["chore: Direct push", "fix: Real (#21)"],
     prs: { 21: [issue(16)] },
   });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout, "- #16\n");
+});
+
+test("fails when gh can't list a commit's PRs", () => {
+  const result = run({
+    commits: ["fix: Real (#21)"],
+    prs: { 21: [issue(16)] },
+    pulls: { "fix: Real (#21)": "error" },
+  });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /rate limit/);
+});
+
+test("fails when gh can't read a PR", () => {
+  const result = run({
+    commits: ["feat: Unreadable (#99)", "fix: Real (#21)"],
+    prs: { 21: [issue(16)] },
+  });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /unexpected: pr view 99/);
 });
 
 const merged = (number) => ({ number, merged_at: "2026-12-01T00:00:00Z" });
