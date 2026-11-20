@@ -94,7 +94,7 @@ Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the p
 | `pnpm check:manifests`         | `claude plugin validate --strict` on both manifests in `.claude-plugin/`       |
 | `pnpm check:links`             | Links in Markdown files, local and external (linkinator)                       |
 | `pnpm check:workflow-timeouts` | Every GitHub Actions job sets `timeout-minutes`                                |
-| `pnpm test`                    | Tests for the repo's own scripts                                               |
+| `pnpm test`                    | Tests for the repo's scripts and the names customers' settings reference       |
 
 ## Publishing
 
