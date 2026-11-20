@@ -19,6 +19,7 @@ const PINS = {
     String.raw`\btagged\s+${MARKUP}v${VERSION}`,
     String.raw`${MARKUP}v${VERSION}${MARKUP}\s+image tag\b`,
     String.raw`(?<![A-Za-z])behind${MARKUP}\s+${VERSION}`,
+    String.raw`\bserverInfo\.version${MARKUP}[^.;\n]*?\bwith\s+${MARKUP}${VERSION}`,
   ],
   "@deque/axe-auth": [String.raw`@deque/axe-auth@${VERSION}`],
   playwright: [
@@ -108,9 +109,25 @@ function groupByVersion(occurrences) {
   return groups;
 }
 
+const pins = collectPins();
+
+// One occurrence leaves nothing to compare, so a rewording that slips past every
+// pattern would otherwise pass silently.
+const missing = Object.entries(pins).filter(([, found]) => found.length < 2);
+if (missing.length > 0) {
+  console.error("Too few current pins found to compare:");
+  for (const [pin, found] of missing) {
+    console.error(`  ${pin}: found ${found.length}, expected at least 2`);
+  }
+  console.error(
+    "\nIf a pin was reworded, add a pattern for the new phrasing to PINS in scripts/check-versions.mjs.",
+  );
+  process.exit(1);
+}
+
 const conflicts = [];
 for (const [pin, occurrences] of Object.entries({
-  ...collectPins(),
+  ...pins,
   "plugin version": collectPluginVersions(),
 })) {
   const groups = groupByVersion(occurrences);
