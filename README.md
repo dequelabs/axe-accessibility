@@ -102,7 +102,7 @@ Users receive only released versions. A merge to `main` ships nothing on its own
 
 Anyone with write access can cut a release:
 
-1. In the **Actions** tab, run **Create release PR** on `main`. Choose `major`, `minor`, or `patch`, or leave it empty to pick the bump from the commits since the last release. While the version is below 1.0.0 the automatic choice treats a `feat` as a patch, so choose `minor` for a feature release.
+1. In the **Actions** tab, run **Create release PR** on `main`. Choose `major`, `minor`, or `patch`, or leave it empty to pick the bump from the commits since the last release by the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) rules: a breaking change (`!` after the type, or a `BREAKING CHANGE:` footer) is major, a `feat` is minor, and anything else is a patch. Those rules apply below 1.0.0 too.
 2. The workflow opens a PR from `release-<version>` titled `chore(release): v<version>`. It sets the new version in `plugin.json`, moves the marketplace entry's `ref` to `v<version>`, adds a `CHANGELOG.md` entry built from the `feat` and `fix` commits, and lists the issues closed since the last release.
 3. Review and merge it like any other PR. CI runs on it.
 4. The merge runs the **Release** workflow, which tags the merge commit `v<version>` and publishes a GitHub release with the changelog entry as its notes.

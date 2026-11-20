@@ -30,11 +30,10 @@ jobs:
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
         run: |
-          if [ -n "$RELEASE_TYPE" ]; then
-            pnpm run release --release-as "$RELEASE_TYPE"
-          else
-            pnpm run release
+          if [ -z "$RELEASE_TYPE" ]; then
+            RELEASE_TYPE=$(node scripts/release-type.mjs)
           fi
+          pnpm run release --release-as "$RELEASE_TYPE"
           pnpm exec prettier --write CHANGELOG.md .claude-plugin
           pnpm run check:versions
       - name: Open the release PR
