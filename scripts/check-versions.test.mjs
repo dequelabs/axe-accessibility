@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./check-versions.mjs", import.meta.url).pathname;
+const script = fileURLToPath(new URL("./check-versions.mjs", import.meta.url));
 
 function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
   return {
@@ -24,14 +25,19 @@ function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
 
 function check(files) {
   const dir = mkdtempSync(join(tmpdir(), "versions-"));
-  for (const [name, content] of Object.entries({
-    ...manifests("0.3.2"),
-    ...files,
-  })) {
-    mkdirSync(dirname(join(dir, name)), { recursive: true });
-    writeFileSync(join(dir, name), content);
+  try {
+    spawnSync("git", ["init", "-q", dir]);
+    for (const [name, content] of Object.entries({
+      ...manifests("0.3.2"),
+      ...files,
+    })) {
+      mkdirSync(dirname(join(dir, name)), { recursive: true });
+      writeFileSync(join(dir, name), content);
+    }
+    return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-  return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
 }
 
 const readme = `
@@ -164,11 +170,20 @@ Docker users on \`:latest\` can sit behind the current release.
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("ignores node_modules and files that are not md, json, sh, or yaml", () => {
+test("ignores files that are not md, json, sh, or yaml", () => {
   const result = check({
     "README.md": readme,
-    "node_modules/pkg/README.md": "npx -y axe-mcp-server@0.0.1",
     "scripts/fixture.test.mjs": "npx -y axe-mcp-server@0.0.1",
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("ignores gitignored files, which CI never sees", () => {
+  const result = check({
+    "README.md": readme,
+    ".gitignore": "node_modules/\n*.local.md\n",
+    "node_modules/pkg/README.md": "npx -y axe-mcp-server@0.0.1",
+    "notes.local.md": "npx -y axe-mcp-server@0.0.1",
   });
   assert.equal(result.status, 0, result.stderr);
 });

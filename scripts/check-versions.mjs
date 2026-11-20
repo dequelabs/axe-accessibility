@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 
 // Only phrasings that state the *current* pin are listed, so prose about past
 // releases ("needs 1.5.0+", "since server 1.4.0") is ignored by default. A new
@@ -25,19 +26,34 @@ const PINS = {
   ],
 };
 const SCANNED = new Set([".md", ".json", ".sh", ".yml", ".yaml"]);
-const SKIPPED = new Set([".git", "node_modules", "pnpm-lock.yaml"]);
 const PLUGIN = ".claude-plugin/plugin.json";
 const MARKETPLACE = ".claude-plugin/marketplace.json";
 
 const root = process.argv[2] ?? ".";
 
-function* walk(dir) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (SKIPPED.has(entry.name)) continue;
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) yield* walk(path);
-    else if (entry.isFile() && SCANNED.has(extname(entry.name))) yield path;
-  }
+// Ask git rather than walking the tree, so gitignored local files (which CI's
+// checkout never has) can't fail the pre-commit hook.
+function listFiles() {
+  return execFileSync(
+    "git",
+    [
+      "-C",
+      root,
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+    ],
+    { encoding: "utf8" },
+  )
+    .split("\0")
+    .filter(
+      (file) =>
+        SCANNED.has(extname(file)) &&
+        basename(file) !== "pnpm-lock.yaml" &&
+        existsSync(join(root, file)),
+    );
 }
 
 function lineAt(text, index) {
@@ -46,9 +62,8 @@ function lineAt(text, index) {
 
 function collectPins() {
   const found = Object.fromEntries(Object.keys(PINS).map((pin) => [pin, []]));
-  for (const path of [...walk(root)].sort()) {
-    const text = readFileSync(path, "utf8");
-    const file = relative(root, path);
+  for (const file of listFiles().sort()) {
+    const text = readFileSync(join(root, file), "utf8");
     for (const [pin, patterns] of Object.entries(PINS)) {
       for (const pattern of patterns) {
         for (const match of text.matchAll(new RegExp(pattern, "dg"))) {
