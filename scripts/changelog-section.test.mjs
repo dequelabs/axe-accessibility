@@ -4,8 +4,11 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./changelog-section.mjs", import.meta.url).pathname;
+const script = fileURLToPath(
+  new URL("./changelog-section.mjs", import.meta.url),
+);
 
 const changelog = `# Changelog
 

@@ -4,10 +4,17 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./check-release-pr.mjs", import.meta.url).pathname;
+const script = fileURLToPath(
+  new URL("./check-release-pr.mjs", import.meta.url),
+);
 
-function manifests(version, ref = `v${version}`) {
+function manifests(
+  version,
+  ref = `v${version}`,
+  url = "https://example.test/x.git",
+) {
   return {
     ".claude-plugin/plugin.json": JSON.stringify({
       name: "axe-accessibility",
@@ -17,7 +24,7 @@ function manifests(version, ref = `v${version}`) {
       plugins: [
         {
           name: "axe-accessibility",
-          source: { source: "url", url: "https://example.test/x.git", ref },
+          source: { source: "url", url, ref },
         },
       ],
     }),
@@ -36,12 +43,17 @@ function git(dir, ...args) {
   return execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
 }
 
-function check({ changes, branch, title }) {
+function check({
+  changes,
+  branch,
+  title,
+  base: baseFiles = manifests("0.3.2"),
+}) {
   const dir = mkdtempSync(join(tmpdir(), "release-pr-"));
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "user.email", "test@example.test");
   git(dir, "config", "user.name", "test");
-  write(dir, manifests("0.3.2"));
+  write(dir, baseFiles);
   git(dir, "add", "-A");
   git(dir, "commit", "-qm", "base");
   const base = git(dir, "rev-parse", "HEAD");
@@ -102,6 +114,44 @@ test("fails a change to only the marketplace ref outside a release PR", () => {
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /v0\.3\.2 -> v0\.3\.1/);
+});
+
+const unpinned = {
+  ...manifests("0.3.2"),
+  ".claude-plugin/marketplace.json": JSON.stringify({
+    plugins: [{ name: "axe-accessibility", source: "./" }],
+  }),
+};
+
+test("passes first pinning the marketplace entry to the current version's tag", () => {
+  const result = check({
+    base: unpinned,
+    changes: manifests("0.3.2"),
+    branch: "release-flow",
+    title: "feat: Serve only releases",
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("fails first pinning the marketplace entry to another version's tag", () => {
+  const result = check({
+    base: unpinned,
+    changes: manifests("0.3.2", "v0.3.1"),
+    branch: "release-flow",
+    title: "feat: Serve only releases",
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /undefined -> v0\.3\.1/);
+});
+
+test("fails a change to the marketplace source's URL outside a release PR", () => {
+  const result = check({
+    changes: manifests("0.3.2", "v0.3.2", "https://example.test/fork.git"),
+    branch: "move-source",
+    title: "fix: Install from a fork",
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /fork\.git/);
 });
 
 test("fails a release branch whose title is not the release title", () => {

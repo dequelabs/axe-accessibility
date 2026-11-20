@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { readChangelogSection } from "./changelog-section.mjs";
 
 // Only release PRs may change what users install: plugin.json's version and
-// the marketplace entry's source ref. Users get a new copy only when the
+// the marketplace entry's source. Users get a new copy only when the
 // version changes, and the ref picks which tag they get, so a stray change to
 // either would ship work outside the release flow.
 const PLUGIN = ".claude-plugin/plugin.json";
@@ -38,7 +38,14 @@ function released(revision) {
   const entry = readAt(revision, MARKETPLACE).plugins?.find(
     (p) => p.name === plugin.name,
   );
-  return { version: plugin.version, ref: entry?.source?.ref };
+  const source = entry?.source;
+  return {
+    version: plugin.version,
+    ref: source?.ref,
+    source: JSON.stringify(
+      typeof source === "object" ? { ...source, ref: undefined } : source,
+    ),
+  };
 }
 
 const before = released(base);
@@ -47,8 +54,13 @@ const changes = [];
 if (before.version !== after.version) {
   changes.push(`${PLUGIN} version: ${before.version} -> ${after.version}`);
 }
-if (before.ref !== after.ref) {
+// The PR that first pins the entry to a tag (#15) pins the current release.
+const firstPin = before.ref === undefined && after.ref === `v${after.version}`;
+if (before.ref !== after.ref && !firstPin) {
   changes.push(`${MARKETPLACE} source.ref: ${before.ref} -> ${after.ref}`);
+}
+if (before.source !== after.source && !firstPin) {
+  changes.push(`${MARKETPLACE} source: ${before.source} -> ${after.source}`);
 }
 
 if (changes.length === 0) {

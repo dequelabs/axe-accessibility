@@ -4,8 +4,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./release-type.mjs", import.meta.url).pathname;
+const script = fileURLToPath(new URL("./release-type.mjs", import.meta.url));
 
 function git(dir, ...args) {
   return execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();

@@ -1,8 +1,11 @@
 import { execFileSync } from "node:child_process";
 
-// Lists the issues closed by each PR squash-merged since the last release tag,
-// for the release PR body. GitHub renders each reference with its live title.
+// Lists the issues closed by each PR merged since the last release tag, for
+// the release PR body. GitHub renders each reference with its live title. PRs
+// come from GitHub's commit-to-PR links, which cover squash, merge, and rebase
+// merges alike.
 const root = process.argv[2] ?? ".";
+const repo = process.env.GITHUB_REPOSITORY;
 
 function run(command, args) {
   return execFileSync(command, args, {
@@ -13,13 +16,29 @@ function run(command, args) {
 }
 
 const since = run("git", ["describe", "--tags", "--abbrev=0", "--match", "v*"]);
-const subjects = run("git", [
+const commits = run("git", [
   "log",
   "--reverse",
   `${since}..HEAD`,
-  "--format=%s",
-]);
-const prs = [...subjects.matchAll(/\(#(\d+)\)$/gm)].map((m) => m[1]);
+  "--format=%H",
+])
+  .split("\n")
+  .filter(Boolean);
+
+const prs = new Set();
+for (const sha of commits) {
+  let pulls;
+  try {
+    pulls = JSON.parse(
+      run("gh", ["api", `repos/${repo}/commits/${sha}/pulls`]),
+    );
+  } catch {
+    continue;
+  }
+  for (const { number, merged_at } of pulls) {
+    if (merged_at) prs.add(String(number));
+  }
+}
 
 const issues = new Set();
 for (const pr of prs) {
@@ -32,12 +51,8 @@ for (const pr of prs) {
     continue;
   }
   for (const { number, repository } of references ?? []) {
-    const repo = `${repository.owner.login}/${repository.name}`;
-    issues.add(
-      repo === process.env.GITHUB_REPOSITORY
-        ? `#${number}`
-        : `${repo}#${number}`,
-    );
+    const closedIn = `${repository.owner.login}/${repository.name}`;
+    issues.add(closedIn === repo ? `#${number}` : `${closedIn}#${number}`);
   }
 }
 
