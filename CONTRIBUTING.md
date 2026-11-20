@@ -15,7 +15,7 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 
 ## Checks
 
-`pnpm check` runs every check and the tests that CI runs, except the PR title check. Each also runs on its own:
+`pnpm check` runs every check and the tests that CI runs, except the PR title and Release PR checks. Each also runs on its own:
 
 | Command                            | Checks                                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------- |

@@ -40,7 +40,7 @@ The plugin pins exact versions of `axe-mcp-server` (npm package and Docker image
 
 When the `axe-mcp-server` pin changes:
 
-1. Update every current pin together, including Playwright (`npm view axe-mcp-server@<version> dependencies.playwright`) and `@deque/axe-auth`. `pnpm run check:versions` lists any that disagree.
+1. Update every current pin together, including Playwright (`npm view axe-mcp-server@<version> dependencies.playwright`) and `@deque/axe-auth`. `pnpm run check:versions` lists any that disagree, but it can't see a current pin written in a phrasing it doesn't recognize, so also run `git grep -nF '<old version>'` for the old server and Playwright versions and update every current pin it finds.
 2. Re-check every doc that claims to match a specific server release against the new release's actual tool descriptions and responses, and fix the guidance, not just the number. Today those are:
    - `README.md`: "documented against" and the "Why the server is pinned" section
    - `skills/mcp-usage/SKILL.md`: "those of server X"
