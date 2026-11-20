@@ -190,6 +190,27 @@ test("fails when a version bump's tag already exists on another commit", () => {
   assert.deepEqual(result.calls, []);
 });
 
+test("does nothing after a later merge when the tag is on another commit", () => {
+  const repo = setup();
+  commit(repo.dir, "chore(release): v0.4.0 (#31)", () =>
+    setVersion(repo.dir, "0.4.0", "- New\n"),
+  );
+  commit(repo.dir, "fix: Later (#32)", () =>
+    writeFileSync(join(repo.dir, "README.md"), "later"),
+  );
+  const elsewhere = git(repo.dir, "rev-parse", "HEAD");
+  git(repo.dir, "tag", "-a", "v0.4.0", "-m", "v0.4.0");
+  git(repo.dir, "push", "-q", "origin", "v0.4.0");
+  commit(repo.dir, "fix: Even later (#33)", () =>
+    writeFileSync(join(repo.dir, "README.md"), "even later"),
+  );
+  const result = publish(repo);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /v0\.4\.0 is already released/);
+  assert.equal(remoteTag(repo.origin, "v0.4.0").commit, elsewhere);
+  assert.deepEqual(result.calls, []);
+});
+
 test("tags the release commit, not a later one, when its run didn't", () => {
   const repo = setup();
   commit(repo.dir, "chore(release): v0.4.0 (#31)", () =>

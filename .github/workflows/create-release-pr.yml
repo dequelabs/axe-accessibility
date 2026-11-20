@@ -59,8 +59,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"
-
           INCLUDED=$(node scripts/release-issues.mjs)
           CHANGES=$(node scripts/changelog-section.mjs "$VERSION")
 
@@ -78,4 +76,5 @@ jobs:
           ${CHANGES:-_No notable changes._}
           EOM
           )
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"
           gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$BODY"
