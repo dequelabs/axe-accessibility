@@ -58,7 +58,7 @@ Every package the plugin launches with `npx` is pinned to an exact version, so w
 
 Where the guidance and the server ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
-**Updating for a new server release** (maintainers): users get a new server only through a plugin release. See [Pinned versions](AGENTS.md#pinned-versions) for the steps.
+**Updating for a new server release** (maintainers): users get a new server only through a plugin release. See [Pinned versions](AGENTS.md#pinned-versions) for the steps; users get the change with the next [release](#releasing).
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -83,11 +83,24 @@ Once the plugin is accepted into the [Claude plugin directory](https://claude.co
 
 Setup, checks, and conventions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Releasing
+
+Users receive only released versions. A merge to `main` ships nothing on its own: the plugin's version lives in `.claude-plugin/plugin.json`, and the marketplace entry in `.claude-plugin/marketplace.json` installs the plugin from that version's tag, `v<version>`.
+
+Anyone with write access can cut a release:
+
+1. In the **Actions** tab, run **Create release PR** on `main`. Choose `major`, `minor`, or `patch`, or leave it empty to pick the bump from the commits since the last release by the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) rules: a breaking change (`!` after the type, or a `BREAKING CHANGE:` footer) is major, a `feat` is minor, and anything else is a patch. Those rules apply below 1.0.0 too.
+2. The workflow opens a PR from `release-<version>` titled `chore(release): v<version>`. It sets the new version in `plugin.json`, moves the marketplace entry's `ref` to `v<version>`, adds a `CHANGELOG.md` entry built from the `feat` and `fix` commits, and lists the issues closed since the last release.
+3. Review and merge it like any other PR. CI runs on it.
+4. The merge runs the **Release** workflow, which tags the merge commit `v<version>` and publishes a GitHub release with the changelog entry as its notes.
+
+The **Release PR** check fails any other PR that changes the plugin version or the marketplace entry's `ref`, so versions move only through this flow. `pnpm release --dry-run` previews the next version and changelog entry locally.
+
 ## Publishing
 
-Two distribution paths, not mutually exclusive:
+Two distribution paths, not mutually exclusive. Each receives releases differently:
 
-1. **Self-hosted marketplace** — this repo doubles as one; `.claude-plugin/marketplace.json` makes it installable immediately via `/plugin marketplace add dequelabs/axe-accessibility`.
+1. **Self-hosted marketplace** — this repo doubles as one. `/plugin marketplace add dequelabs/axe-accessibility` reads `.claude-plugin/marketplace.json` from `main`, and its entry installs the plugin from the latest release's tag, never from `main`. Changes to the entry's own metadata, such as its description, still reach users from `main` directly. Existing installs move to a new release when the user runs `claude plugin update axe-accessibility@deque`, or on their own if the user turned on auto-update for the `deque` marketplace; Claude Code replaces an install only when the version changes. Between merging a release PR and the **Release** workflow pushing the tag, usually under a minute, fresh installs fail and updates keep the previous version.
 2. **Claude plugin directory** — the community-driven directory that Claude Code exposes as the built-in `claude-plugins-official` marketplace. Submission requires a **public** GitHub repo (closed source is not accepted) and a passing validate:
 
    ```sh
@@ -95,7 +108,9 @@ Two distribution paths, not mutually exclusive:
    claude plugin validate .claude-plugin/marketplace.json --strict
    ```
 
-   Submit through one of Anthropic's in-app forms — [claude.ai](https://claude.ai/admin-settings/directory/submissions/plugins/new), which needs a Team or Enterprise org plus directory-management access (Owners have it by default), or [Console](https://platform.claude.com/plugins/submit), which needs a Developer, Admin, or Owner role. Submission status and reviewer feedback appear on the [Directory page](https://claude.ai/admin-settings/directory/submissions) in organization settings. Anthropic runs automated screening on every submission; the "Anthropic Verified" badge is an additional, discretionary quality-and-safety review with no application path. After publication, pushes to this repo are picked up automatically — updates do not need re-submission.
+   Submit through one of Anthropic's in-app forms — [claude.ai](https://claude.ai/admin-settings/directory/submissions/plugins/new), which needs a Team or Enterprise org plus directory-management access (Owners have it by default), or [Console](https://platform.claude.com/plugins/submit), which needs a Developer, Admin, or Owner role. Submission status and reviewer feedback appear on the [Directory page](https://claude.ai/admin-settings/directory/submissions) in organization settings. Anthropic runs automated screening on every submission; the "Anthropic Verified" badge is an additional, discretionary quality-and-safety review with no application path.
+
+   The directory serves whichever commit the listing's tracked branch or tag points to, which is set in Anthropic's developer portal rather than in this repo. Making it serve only releases is tracked in [#22](https://github.com/dequelabs/axe-accessibility/issues/22).
 
    This is a different directory from the [Connectors Directory](https://claude.com/docs/connectors/directory), which lists **remote** MCP servers only. The Axe MCP Server ships as a local stdio server, so the plugin directory is its route; see [Anthropic's review criteria](https://claude.com/docs/connectors/building/review-criteria), which both directories share.
 

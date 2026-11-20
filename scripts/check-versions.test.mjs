@@ -1,13 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./check-versions.mjs", import.meta.url).pathname;
+const script = fileURLToPath(new URL("./check-versions.mjs", import.meta.url));
 
-function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
+function manifests(
+  pluginVersion,
+  marketplaceVersion = pluginVersion,
+  ref = `v${pluginVersion}`,
+) {
   return {
     ".claude-plugin/plugin.json": JSON.stringify({
       name: "axe-accessibility",
@@ -16,22 +21,37 @@ function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
     ".claude-plugin/marketplace.json": JSON.stringify({
       plugins: [
         { name: "something-else", version: "9.9.9" },
-        { name: "axe-accessibility", version: marketplaceVersion },
+        {
+          name: "axe-accessibility",
+          version: marketplaceVersion,
+          source: { source: "url", url: "https://example.test/x.git", ref },
+        },
       ],
     }),
   };
 }
 
-function check(files) {
-  const dir = mkdtempSync(join(tmpdir(), "versions-"));
-  for (const [name, content] of Object.entries({
-    ...manifests("0.3.2"),
-    ...files,
-  })) {
+function write(dir, files) {
+  for (const [name, content] of Object.entries(files)) {
     mkdirSync(dirname(join(dir, name)), { recursive: true });
     writeFileSync(join(dir, name), content);
   }
-  return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
+}
+
+// Files are added to the index, as in a CI checkout; `untracked` files are
+// written afterwards, as new files are before a pre-commit run.
+function check(files, { untracked = {}, deleted = [] } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "versions-"));
+  try {
+    spawnSync("git", ["init", "-q", dir]);
+    write(dir, { ...manifests("0.3.2"), ...files });
+    spawnSync("git", ["-C", dir, "add", "-A"]);
+    write(dir, untracked);
+    for (const name of deleted) rmSync(join(dir, name));
+    return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 const readme = `
@@ -50,6 +70,7 @@ pinned to 1.6.0 and the documented Docker image is tagged \`v1.6.0\`.
 This guidance documents server 1.6.0's response shapes, and the Playwright pin
 (\`1.62.1\`) is the version that server depends on. Docker uses the \`v1.6.0\`
 image tag. All shapes below are the wire format of Axe MCP Server 1.6.0.
+Docker users can sit _behind_ 1.6.0.
 `;
 
 const startScript = `#!/bin/sh
@@ -137,6 +158,7 @@ for (const [name, before, after] of [
   ["documents server X", "documents server 1.6.0", "documents server 1.7.0"],
   ["`vX` image tag", "`v1.6.0`\nimage tag", "`v1.7.0`\nimage tag"],
   ["Axe MCP Server X", "Axe MCP Server 1.6.0", "Axe MCP Server 1.7.0"],
+  ["behind X", "_behind_ 1.6.0", "_behind_ 1.7.0"],
 ]) {
   test(`recognizes the skill prose pin "${name}"`, () => {
     const result = check({
@@ -164,12 +186,38 @@ Docker users on \`:latest\` can sit behind the current release.
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("ignores node_modules and files that are not md, json, sh, or yaml", () => {
+test("ignores files that are not md, json, sh, or yaml", () => {
   const result = check({
     "README.md": readme,
-    "node_modules/pkg/README.md": "npx -y axe-mcp-server@0.0.1",
     "scripts/fixture.test.mjs": "npx -y axe-mcp-server@0.0.1",
   });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("ignores gitignored files, which CI never sees", () => {
+  const result = check({
+    "README.md": readme,
+    ".gitignore": "node_modules/\n*.local.md\n",
+    "node_modules/pkg/README.md": "npx -y axe-mcp-server@0.0.1",
+    "notes.local.md": "npx -y axe-mcp-server@0.0.1",
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("scans new files git does not track yet", () => {
+  const result = check(
+    { "README.md": readme },
+    { untracked: { "notes.md": "npx -y axe-mcp-server@0.0.1" } },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /notes\.md:1/);
+});
+
+test("skips tracked files deleted from the working tree", () => {
+  const result = check(
+    { "README.md": readme, "old.md": "npx -y axe-mcp-server@1.6.0" },
+    { deleted: ["old.md"] },
+  );
   assert.equal(result.status, 0, result.stderr);
 });
 
@@ -207,8 +255,50 @@ test("passes when the marketplace entry leaves the version to plugin.json", () =
   const result = check({
     "README.md": readme,
     ".claude-plugin/marketplace.json": JSON.stringify({
-      plugins: [{ name: "axe-accessibility" }],
+      plugins: [
+        {
+          name: "axe-accessibility",
+          source: {
+            source: "url",
+            url: "https://example.test/x.git",
+            ref: "v0.3.2",
+          },
+        },
+      ],
     }),
   });
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("fails when the marketplace source ref is not the plugin.json version's tag", () => {
+  const result = check({
+    "README.md": readme,
+    ...manifests("0.4.0", "0.4.0", "v0.3.2"),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /0\.4\.0\s+\.claude-plugin\/plugin\.json/);
+  assert.match(
+    result.stderr,
+    /0\.3\.2\s+\.claude-plugin\/marketplace\.json\s+plugins\[name=axe-accessibility\]\.source\.ref/,
+  );
+});
+
+test("fails when the marketplace source ref has no v prefix", () => {
+  const result = check({
+    "README.md": readme,
+    ...manifests("0.3.2", "0.3.2", "0.3.2"),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /source\.ref/);
+});
+
+test("fails when the marketplace entry is not pinned to a ref", () => {
+  const result = check({
+    "README.md": readme,
+    ".claude-plugin/marketplace.json": JSON.stringify({
+      plugins: [{ name: "axe-accessibility", source: "./" }],
+    }),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /source\.ref/);
 });
