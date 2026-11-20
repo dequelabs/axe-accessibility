@@ -23,17 +23,23 @@ function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
   };
 }
 
-function check(files) {
+function write(dir, files) {
+  for (const [name, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(dir, name)), { recursive: true });
+    writeFileSync(join(dir, name), content);
+  }
+}
+
+// Files are added to the index, as in a CI checkout; `untracked` files are
+// written afterwards, as new files are before a pre-commit run.
+function check(files, { untracked = {}, deleted = [] } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "versions-"));
   try {
     spawnSync("git", ["init", "-q", dir]);
-    for (const [name, content] of Object.entries({
-      ...manifests("0.3.2"),
-      ...files,
-    })) {
-      mkdirSync(dirname(join(dir, name)), { recursive: true });
-      writeFileSync(join(dir, name), content);
-    }
+    write(dir, { ...manifests("0.3.2"), ...files });
+    spawnSync("git", ["-C", dir, "add", "-A"]);
+    write(dir, untracked);
+    for (const name of deleted) rmSync(join(dir, name));
     return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -187,6 +193,23 @@ test("ignores gitignored files, which CI never sees", () => {
     "node_modules/pkg/README.md": "npx -y axe-mcp-server@0.0.1",
     "notes.local.md": "npx -y axe-mcp-server@0.0.1",
   });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("scans new files git does not track yet", () => {
+  const result = check(
+    { "README.md": readme },
+    { untracked: { "notes.md": "npx -y axe-mcp-server@0.0.1" } },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /notes\.md:1/);
+});
+
+test("skips tracked files deleted from the working tree", () => {
+  const result = check(
+    { "README.md": readme, "old.md": "npx -y axe-mcp-server@1.6.0" },
+    { deleted: ["old.md"] },
+  );
   assert.equal(result.status, 0, result.stderr);
 });
 
