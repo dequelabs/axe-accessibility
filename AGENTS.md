@@ -11,7 +11,7 @@ Run `pnpm install` once (Node from `.nvmrc`, pnpm via `corepack enable`). Then:
 - `pnpm test` runs the tests.
 - `pnpm run check:<name>` runs one check, where `<name>` is `format`, `lint`, `spelling`, `shell`, `manifests`, `links`, `workflow-timeouts`, or `versions`.
 
-Spelling failures on real words: add them to `project-words.txt`. `check:links` needs network access, and `check:shell` downloads ShellCheck on its first run.
+Spelling failures on real words: add them to `project-words.txt`. `check:links` needs network access, and `check:shell` needs ShellCheck installed locally.
 
 ## Commits and PRs
 

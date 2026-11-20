@@ -10,7 +10,8 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 
 1. Install the Node version in [`.nvmrc`](.nvmrc) (for example `nvm install`).
 2. Run `corepack enable`. It provides the pnpm version pinned in `packageManager` in [`package.json`](package.json).
-3. Run `pnpm install`. It also installs the pre-commit hook.
+3. Install [ShellCheck](https://github.com/koalaman/shellcheck#installing) (for example `brew install shellcheck`). `pnpm check:shell` uses it; CI runs it through a pinned GitHub Action.
+4. Run `pnpm install`. It also installs the pre-commit hook.
 
 ## Checks
 
@@ -21,7 +22,7 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 | `pnpm run check:format`            | Formatting (Prettier). `pnpm fmt` fixes it.                                              |
 | `pnpm run check:lint`              | Lint for JavaScript, JSON, and Markdown (ESLint)                                         |
 | `pnpm run check:spelling`          | Spelling (cspell). Add real words to [`project-words.txt`](project-words.txt).           |
-| `pnpm run check:shell`             | Shell scripts (ShellCheck, downloaded on first run)                                      |
+| `pnpm run check:shell`             | Shell scripts (ShellCheck, installed locally)                                            |
 | `pnpm run check:manifests`         | `claude plugin validate --strict` on both manifests in `.claude-plugin/`                 |
 | `pnpm run check:links`             | Links in Markdown files, local and external (linkinator). Needs network access.          |
 | `pnpm run check:workflow-timeouts` | Every GitHub Actions job sets `timeout-minutes`                                          |
