@@ -11,6 +11,7 @@ focusability
 frontmatter
 infocus
 linkinator
+ludeeus
 nvmrc
 pkce
 pullable
@@ -18,7 +19,6 @@ remediations
 respawns
 rgaa
 shellcheck
-shellcheckjs
 unentitled
 unsets
 vnode
