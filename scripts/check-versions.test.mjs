@@ -56,6 +56,7 @@ pinned to 1.6.0 and the documented Docker image is tagged \`v1.6.0\`.
 This guidance documents server 1.6.0's response shapes, and the Playwright pin
 (\`1.62.1\`) is the version that server depends on. Docker uses the \`v1.6.0\`
 image tag. All shapes below are the wire format of Axe MCP Server 1.6.0.
+Docker users can sit _behind_ 1.6.0.
 `;
 
 const startScript = `#!/bin/sh
@@ -143,6 +144,7 @@ for (const [name, before, after] of [
   ["documents server X", "documents server 1.6.0", "documents server 1.7.0"],
   ["`vX` image tag", "`v1.6.0`\nimage tag", "`v1.7.0`\nimage tag"],
   ["Axe MCP Server X", "Axe MCP Server 1.6.0", "Axe MCP Server 1.7.0"],
+  ["behind X", "_behind_ 1.6.0", "_behind_ 1.7.0"],
 ]) {
   test(`recognizes the skill prose pin "${name}"`, () => {
     const result = check({

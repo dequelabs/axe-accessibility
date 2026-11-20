@@ -18,6 +18,7 @@ const PINS = {
     String.raw`\bwire\s+format\s+of\s+Axe\s+MCP\s+Server\s+${VERSION}`,
     String.raw`\btagged\s+${MARKUP}v${VERSION}`,
     String.raw`${MARKUP}v${VERSION}${MARKUP}\s+image tag\b`,
+    String.raw`(?<![A-Za-z])behind${MARKUP}\s+${VERSION}`,
   ],
   "@deque/axe-auth": [String.raw`@deque/axe-auth@${VERSION}`],
   playwright: [
