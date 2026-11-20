@@ -28,6 +28,8 @@ const PINS = {
   ],
 };
 const SCANNED = new Set([".md", ".json", ".sh", ".yml", ".yaml"]);
+// CHANGELOG.md records past releases, so the pins it mentions are history.
+const SKIPPED = new Set(["pnpm-lock.yaml", "CHANGELOG.md"]);
 const PLUGIN = ".claude-plugin/plugin.json";
 const MARKETPLACE = ".claude-plugin/marketplace.json";
 
@@ -53,7 +55,7 @@ function listFiles() {
     .filter(
       (file) =>
         SCANNED.has(extname(file)) &&
-        basename(file) !== "pnpm-lock.yaml" &&
+        !SKIPPED.has(basename(file)) &&
         existsSync(join(root, file)),
     );
 }
@@ -95,6 +97,18 @@ function collectPluginVersions() {
       version: entry?.version ?? "(missing entry)",
       file: MARKETPLACE,
       text: `plugins[name=${plugin.name}].version`,
+    });
+  }
+  if (entry) {
+    // Self-hosted marketplace users install the tag this ref names, so it must
+    // be the tag of the version plugin.json declares.
+    const ref = entry.source?.ref;
+    versions.push({
+      version: /^v\d/.test(ref ?? "")
+        ? ref.slice(1)
+        : `(${JSON.stringify(ref ?? null)}, expected "v${plugin.version}")`,
+      file: MARKETPLACE,
+      text: `plugins[name=${plugin.name}].source.ref`,
     });
   }
   return versions;

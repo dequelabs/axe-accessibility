@@ -58,7 +58,7 @@ Every package the plugin launches with `npx`, and the Docker image it documents,
 
 Where the guidance and the server ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
-**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version (npm version and `v<version>` Docker image tag) and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved, then bump the plugin version.
+**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version (npm version and `v<version>` Docker image tag) and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE --exclude=CHANGELOG.md '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved. Users get the change with the next [release](RELEASING.md).
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -83,7 +83,7 @@ Once the plugin is accepted into the [Claude plugin directory](https://claude.co
 
 Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats, lints, and spell-checks staged files, and checks that pinned versions still agree.
 
-`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title). Each one also runs on its own:
+`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title) and the [Release PR](RELEASING.md) check. Each one also runs on its own:
 
 | Command                        | Checks                                                                         |
 | ------------------------------ | ------------------------------------------------------------------------------ |
@@ -99,9 +99,9 @@ Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the p
 
 ## Publishing
 
-Two distribution paths, not mutually exclusive:
+Two distribution paths, not mutually exclusive. Each receives releases differently; [RELEASING.md](RELEASING.md) covers how to cut one:
 
-1. **Self-hosted marketplace** — this repo doubles as one; `.claude-plugin/marketplace.json` makes it installable immediately via `/plugin marketplace add dequelabs/axe-accessibility`.
+1. **Self-hosted marketplace** — this repo doubles as one. `/plugin marketplace add dequelabs/axe-accessibility` reads `.claude-plugin/marketplace.json` from `main`, and its entry installs the plugin from the latest release's tag, never from `main`. Changes to the entry's own metadata, such as its description, still reach users from `main` directly. Existing installs move to a new release when the user runs `claude plugin update axe-accessibility@deque`, or on their own if the user turned on auto-update for the `deque` marketplace; Claude Code replaces an install only when the version changes. Between merging a release PR and the **Release** workflow pushing the tag, usually under a minute, fresh installs fail and updates keep the previous version.
 2. **Claude plugin directory** — the community-driven directory that Claude Code exposes as the built-in `claude-plugins-official` marketplace. Submission requires a **public** GitHub repo (closed source is not accepted) and a passing validate:
 
    ```sh
@@ -109,7 +109,9 @@ Two distribution paths, not mutually exclusive:
    claude plugin validate .claude-plugin/marketplace.json --strict
    ```
 
-   Submit through one of Anthropic's in-app forms — [claude.ai](https://claude.ai/admin-settings/directory/submissions/plugins/new), which needs a Team or Enterprise org plus directory-management access (Owners have it by default), or [Console](https://platform.claude.com/plugins/submit), which needs a Developer, Admin, or Owner role. Submission status and reviewer feedback appear on the [Directory page](https://claude.ai/admin-settings/directory/submissions) in organization settings. Anthropic runs automated screening on every submission; the "Anthropic Verified" badge is an additional, discretionary quality-and-safety review with no application path. After publication, pushes to this repo are picked up automatically — updates do not need re-submission.
+   Submit through one of Anthropic's in-app forms — [claude.ai](https://claude.ai/admin-settings/directory/submissions/plugins/new), which needs a Team or Enterprise org plus directory-management access (Owners have it by default), or [Console](https://platform.claude.com/plugins/submit), which needs a Developer, Admin, or Owner role. Submission status and reviewer feedback appear on the [Directory page](https://claude.ai/admin-settings/directory/submissions) in organization settings. Anthropic runs automated screening on every submission; the "Anthropic Verified" badge is an additional, discretionary quality-and-safety review with no application path.
+
+   The directory serves whichever commit the listing's tracked branch or tag points to, which is set in Anthropic's developer portal rather than in this repo. Making it serve only releases is tracked in [#22](https://github.com/dequelabs/axe-accessibility/issues/22).
 
    This is a different directory from the [Connectors Directory](https://claude.com/docs/connectors/directory), which lists **remote** MCP servers only. The Axe MCP Server ships as a local stdio server, so the plugin directory is its route; see [Anthropic's review criteria](https://claude.com/docs/connectors/building/review-criteria), which both directories share.
 
