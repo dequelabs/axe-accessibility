@@ -3,11 +3,9 @@
 Two independent choices: **distribution** (npm or Docker) and **auth** (API key or OAuth). Pick the shape, then drop it into the client block below. In every snippet the server is named `axe-mcp-server`, which is also the tool prefix (e.g. `mcp__axe-mcp-server__analyze`).
 
 - **npm:** package `axe-mcp-server` (**unscoped** — `@deque/axe-mcp-server` does not exist), pinned to **`axe-mcp-server@1.6.0`** and `@deque/axe-auth@1.6.0`. Requires Node >= 22.19.0 and a one-time Chromium install, with Playwright **pinned** to the version the server ships (`npx -y playwright@1.62.1 install chromium`) — the server does not download a browser itself, and an unpinned install can fetch an unsupported Chromium revision.
-- **Docker:** public image `dequesystems/axe-mcp-server:latest` (anonymously pullable — no `docker login` required).
+- **Docker:** public image `dequesystems/axe-mcp-server:v1.6.0` (anonymously pullable — no `docker login` required), the same server release as the npm pin.
 
-> **Why the npm shapes pin exact versions, and Docker can't.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. An exact pin keeps the running server matched to that guidance and to what was reviewed, and the Playwright pin (`1.62.1`) is the version that server release depends on, so the browser always matches.
->
-> A Docker tag has no range equivalent, so the Docker shapes use `:latest` and are unbounded in both directions: a `docker pull` can cross into 2.x, and an already-pulled image never refreshes on its own, so a container can also sit far _behind_ 1.6.0. Treat the Docker version as something the user manages, not something the config guarantees.
+> **Why every shape pins an exact version.** The plugin's guidance documents server 1.6.0's response shapes — for example, guided-test results keyed by tool name under `data.igt`. An exact pin (the npm version or the Docker image tag) keeps the running server matched to that guidance and to what was reviewed, and the Playwright pin (`1.62.1`) is the version that server release depends on, so the browser always matches. Never swap in a range, `@latest`, or `:latest`.
 >
 > If the server and this guidance ever disagree, the server wins: it generates its own tool descriptions and schemas at runtime, so the agent always sees the live shape. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
@@ -64,7 +62,7 @@ The plugin's own `.mcp.json` runs the same logic from `scripts/start-axe-mcp-ser
 {
   "type": "stdio",
   "command": "docker",
-  "args": ["run", "--add-host=host.docker.internal:host-gateway", "-i", "--rm", "-e", "AXE_API_KEY", "-e", "AXE_SERVER_URL", "dequesystems/axe-mcp-server:latest"]
+  "args": ["run", "--add-host=host.docker.internal:host-gateway", "-i", "--rm", "-e", "AXE_API_KEY", "-e", "AXE_SERVER_URL", "dequesystems/axe-mcp-server:v1.6.0"]
 }
 ```
 
@@ -74,7 +72,7 @@ The plugin's own `.mcp.json` runs the same logic from `scripts/start-axe-mcp-ser
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest"]
+  "args": ["-c", "export AXE_ACCESS_TOKEN=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN -e AXE_SERVER_URL dequesystems/axe-mcp-server:v1.6.0"]
 }
 ```
 
@@ -84,7 +82,7 @@ The plugin's own `.mcp.json` runs the same logic from `scripts/start-axe-mcp-ser
 {
   "type": "stdio",
   "command": "sh",
-  "args": ["-c", "T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:latest; fi"]
+  "args": ["-c", "T=\"$(npx -y @deque/axe-auth@1.6.0 token 2>/dev/null)\"; if [ -n \"$T\" ]; then exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_ACCESS_TOKEN=\"$T\" -e AXE_SERVER_URL dequesystems/axe-mcp-server:v1.6.0; else exec docker run --add-host=host.docker.internal:host-gateway -i --rm -e AXE_API_KEY -e AXE_SERVER_URL dequesystems/axe-mcp-server:v1.6.0; fi"]
 }
 ```
 
@@ -193,8 +191,8 @@ Provide credentials via the `env` object here since Desktop does not inherit a s
 
 ### Docker only
 
-- **Server not listed / won't connect:** ensure Docker Desktop is running and the image is pulled (`docker pull dequesystems/axe-mcp-server:latest`).
+- **Server not listed / won't connect:** ensure Docker Desktop is running and the image is pulled (`docker pull dequesystems/axe-mcp-server:v1.6.0`).
 - **`Failed to resolve an IP address for "host.docker.internal"`:** the `docker run` args are missing `--add-host=host.docker.internal:host-gateway`. Add it (most common on Linux) and restart the server.
 - **`net::ERR_CONNECTION_REFUSED` scanning a local dev server:** the dev server is bound only to `127.0.0.1` and is unreachable from the container. Restart it listening on all interfaces, e.g. `npm run dev -- --host=0.0.0.0`. (Switching to the npm distribution avoids this class of problem entirely.)
 - **`AXE_CHROME_PATH` set:** remove it — it fails at startup under Docker.
-- **Stale version — features documented but missing:** `:latest` does **not** auto-update an already-pulled image, so a machine can sit on an old release indefinitely while npm users move forward. Symptom: a documented parameter has no effect, or a release-noted feature is absent (e.g. no `igtTools` on `analyze`, which needs 1.5.0+). Confirm the running version — the MCP `initialize` response carries `serverInfo.version` — then `docker pull dequesystems/axe-mcp-server:latest` and restart the connection. The npm distribution does not have this failure mode.
+- **Features documented but missing:** a Docker config keeps whatever tag it was written with. Compare `serverInfo.version` from the MCP `initialize` response with `1.6.0`; if they differ (including a config still on `:latest`), change the image to `dequesystems/axe-mcp-server:v1.6.0` and restart the connection.
