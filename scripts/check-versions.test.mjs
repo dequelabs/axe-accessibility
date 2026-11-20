@@ -59,7 +59,9 @@ const readme = `
 
 The plugin is documented against **1.6.0** and runs \`npx -y axe-mcp-server@1.6.0\`.
 Log in with \`npx -y @deque/axe-auth@1.6.0 login\`.
+Log out with \`npx -y @deque/axe-auth@1.6.0 logout\`.
 Install a browser with \`npx -y playwright@1.62.1 install chromium\`.
+Or reinstall it with \`npx -y playwright@1.62.1 install --force chromium\`.
 | Updates | with each plugin release (pinned \`1.6.0\`) | pinned \`v1.6.0\` |
 | Command | \`docker run … dequesystems/axe-mcp-server:v1.6.0\` |
 `;
@@ -71,6 +73,7 @@ This guidance documents server 1.6.0's response shapes, and the Playwright pin
 (\`1.62.1\`) is the version that server depends on. Docker uses the \`v1.6.0\`
 image tag. All shapes below are the wire format of Axe MCP Server 1.6.0.
 Docker users can sit _behind_ 1.6.0.
+Compare \`serverInfo.version\` from the MCP \`initialize\` response with \`1.6.0\`.
 `;
 
 const startScript = `#!/bin/sh
@@ -123,7 +126,7 @@ test("fails when the Playwright pin disagrees", () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /playwright/i);
   assert.match(result.stderr, /1\.63\.0[\s\S]*skills\/setup\/SKILL\.md:5/);
-  assert.match(result.stderr, /1\.62\.1[\s\S]*README\.md:6/);
+  assert.match(result.stderr, /1\.62\.1[\s\S]*README\.md:7/);
 });
 
 test("fails when the Docker image tag differs from the npm pin", () => {
@@ -134,7 +137,7 @@ test("fails when the Docker image tag differs from the npm pin", () => {
     ),
   });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /1\.5\.0[\s\S]*README\.md:8/);
+  assert.match(result.stderr, /1\.5\.0[\s\S]*README\.md:10/);
   assert.match(result.stderr, /dequesystems\/axe-mcp-server:v1\.5\.0/);
 });
 
@@ -159,6 +162,7 @@ for (const [name, before, after] of [
   ["`vX` image tag", "`v1.6.0`\nimage tag", "`v1.7.0`\nimage tag"],
   ["Axe MCP Server X", "Axe MCP Server 1.6.0", "Axe MCP Server 1.7.0"],
   ["behind X", "_behind_ 1.6.0", "_behind_ 1.7.0"],
+  ["`serverInfo.version` … with `X`", "with `1.6.0`", "with `1.7.0`"],
 ]) {
   test(`recognizes the skill prose pin "${name}"`, () => {
     const result = check({
@@ -193,6 +197,17 @@ test("ignores CHANGELOG.md, which records past pins", () => {
       "# Changelog\n\n## [0.3.3](https://x.test) (2026-12-01)\n\n- Pin axe-mcp-server@1.5.0 ([abc](https://x.test))\n",
   });
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("fails when a pin is found fewer than twice, so a rewording can't disable it", () => {
+  const result = check({
+    "README.md": "The server is pinned to a current release.",
+  });
+  assert.equal(result.status, 1);
+  for (const pin of ["axe-mcp-server", "@deque/axe-auth", "playwright"]) {
+    assert.match(result.stderr, new RegExp(`${pin}: found 0`));
+  }
+  assert.match(result.stderr, /PINS/);
 });
 
 test("ignores files that are not md, json, sh, or yaml", () => {

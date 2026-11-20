@@ -81,7 +81,7 @@ Once the plugin is accepted into the [Claude plugin directory](https://claude.co
 
 ## Development
 
-Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats, lints, and spell-checks staged files.
+Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats, lints, and spell-checks staged files, and checks that pinned versions still agree.
 
 `pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title) and the [Release PR](RELEASING.md) check. Each one also runs on its own:
 
@@ -94,7 +94,8 @@ Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the p
 | `pnpm check:manifests`         | `claude plugin validate --strict` on both manifests in `.claude-plugin/`       |
 | `pnpm check:links`             | Links in Markdown files, local and external (linkinator)                       |
 | `pnpm check:workflow-timeouts` | Every GitHub Actions job sets `timeout-minutes`                                |
-| `pnpm test`                    | Tests for the repo's own scripts                                               |
+| `pnpm check:versions`          | Pinned server, axe-auth, Playwright, and plugin versions agree everywhere      |
+| `pnpm test`                    | Tests for the repo's scripts and the names customers' settings reference       |
 
 ## Publishing
 
