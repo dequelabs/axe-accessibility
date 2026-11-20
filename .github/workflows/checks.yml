@@ -82,6 +82,7 @@ jobs:
       - run: pnpm run check:workflow-timeouts
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}

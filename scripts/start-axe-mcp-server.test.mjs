@@ -55,15 +55,17 @@ function launch({ apiKey, token, authStatus = token ? 0 : 1, env = {} }) {
     );
     const result = spawnSync(server.command, args, {
       encoding: "utf8",
+      timeout: 30_000,
       env: {
+        ...env,
+        ...serverEnv,
         PATH: `${dir}${delimiter}${process.env.PATH}`,
         STUB_DIR: dir,
         STUB_TOKEN: token ?? "",
         STUB_AUTH_STATUS: String(authStatus),
-        ...env,
-        ...serverEnv,
       },
     });
+    assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);
 
     const received = Object.fromEntries(

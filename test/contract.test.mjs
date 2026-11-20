@@ -47,7 +47,6 @@ for (const skill of [
     const path = join(root, "skills", skill, "SKILL.md");
     assert.ok(existsSync(path), `skills/${skill}/SKILL.md is missing`);
     const [, frontmatter] = readFileSync(path, "utf8").split(/^---$/m);
-    const { name = skill } = parse(frontmatter) ?? {};
-    assert.equal(name, skill);
+    assert.equal(parse(frontmatter)?.name, skill);
   });
 }
