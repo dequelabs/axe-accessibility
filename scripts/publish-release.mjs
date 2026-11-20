@@ -55,6 +55,12 @@ if (tagged && tagged !== head) {
   process.exit(0);
 }
 
+if (!tagged && versionAt("HEAD^") === version) {
+  fail(
+    `${tag} isn't tagged, but this commit (${head}) doesn't set plugin.json to ${version}, so it isn't the release. Re-run the Release workflow for the ${tag} release PR's merge commit.`,
+  );
+}
+
 let notes;
 try {
   notes = readChangelogSection(root, version) || "No notable changes.\n";

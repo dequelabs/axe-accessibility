@@ -47,7 +47,9 @@ const changes = [];
 if (before.version !== after.version) {
   changes.push(`${PLUGIN} version: ${before.version} -> ${after.version}`);
 }
-if (before.ref !== after.ref) {
+// The PR that first pins the entry to a tag (#15) pins the current release.
+const firstPin = before.ref === undefined && after.ref === `v${after.version}`;
+if (before.ref !== after.ref && !firstPin) {
   changes.push(`${MARKETPLACE} source.ref: ${before.ref} -> ${after.ref}`);
 }
 

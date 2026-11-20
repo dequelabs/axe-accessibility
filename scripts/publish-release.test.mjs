@@ -189,6 +189,21 @@ test("fails when a version bump's tag already exists on another commit", () => {
   assert.deepEqual(result.calls, []);
 });
 
+test("fails instead of tagging a later commit when the release commit wasn't tagged", () => {
+  const repo = setup();
+  commit(repo.dir, "chore(release): v0.4.0 (#31)", () =>
+    setVersion(repo.dir, "0.4.0", "- New\n"),
+  );
+  commit(repo.dir, "fix: Later (#32)", () =>
+    writeFileSync(join(repo.dir, "README.md"), "later"),
+  );
+  const result = publish(repo);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /v0\.4\.0 isn't tagged/);
+  assert.equal(remoteTag(repo.origin, "v0.4.0"), null);
+  assert.deepEqual(result.calls, []);
+});
+
 test("fails before tagging when CHANGELOG.md has no entry", () => {
   const repo = setup();
   commit(repo.dir, "chore(release): v0.4.0 (#31)", () =>

@@ -36,12 +36,17 @@ function git(dir, ...args) {
   return execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
 }
 
-function check({ changes, branch, title }) {
+function check({
+  changes,
+  branch,
+  title,
+  base: baseFiles = manifests("0.3.2"),
+}) {
   const dir = mkdtempSync(join(tmpdir(), "release-pr-"));
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "user.email", "test@example.test");
   git(dir, "config", "user.name", "test");
-  write(dir, manifests("0.3.2"));
+  write(dir, baseFiles);
   git(dir, "add", "-A");
   git(dir, "commit", "-qm", "base");
   const base = git(dir, "rev-parse", "HEAD");
@@ -102,6 +107,34 @@ test("fails a change to only the marketplace ref outside a release PR", () => {
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /v0\.3\.2 -> v0\.3\.1/);
+});
+
+const unpinned = {
+  ...manifests("0.3.2"),
+  ".claude-plugin/marketplace.json": JSON.stringify({
+    plugins: [{ name: "axe-accessibility", source: "./" }],
+  }),
+};
+
+test("passes first pinning the marketplace entry to the current version's tag", () => {
+  const result = check({
+    base: unpinned,
+    changes: manifests("0.3.2"),
+    branch: "release-flow",
+    title: "feat: Serve only releases",
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("fails first pinning the marketplace entry to another version's tag", () => {
+  const result = check({
+    base: unpinned,
+    changes: manifests("0.3.2", "v0.3.1"),
+    branch: "release-flow",
+    title: "feat: Serve only releases",
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /undefined -> v0\.3\.1/);
 });
 
 test("fails a release branch whose title is not the release title", () => {
