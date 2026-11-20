@@ -56,12 +56,10 @@ jobs:
     steps:
       - uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
-          method: chat.postMessage
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           errors: true
           payload: |
-            # #axe-mcp-server-alerts
-            channel: C0B693DMA0L
             text: "Workflow failed: ${{ github.workflow }} in ${{ github.repository }}"
             blocks:
               - type: header
