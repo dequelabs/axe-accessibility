@@ -27,6 +27,8 @@ const PINS = {
   ],
 };
 const SCANNED = new Set([".md", ".json", ".sh", ".yml", ".yaml"]);
+// CHANGELOG.md records past releases, so the pins it mentions are history.
+const SKIPPED = new Set(["pnpm-lock.yaml", "CHANGELOG.md"]);
 const PLUGIN = ".claude-plugin/plugin.json";
 const MARKETPLACE = ".claude-plugin/marketplace.json";
 
@@ -52,7 +54,7 @@ function listFiles() {
     .filter(
       (file) =>
         SCANNED.has(extname(file)) &&
-        basename(file) !== "pnpm-lock.yaml" &&
+        !SKIPPED.has(basename(file)) &&
         existsSync(join(root, file)),
     );
 }

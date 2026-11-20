@@ -186,6 +186,15 @@ Docker users on \`:latest\` can sit behind the current release.
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("ignores CHANGELOG.md, which records past pins", () => {
+  const result = check({
+    "README.md": readme,
+    "CHANGELOG.md":
+      "# Changelog\n\n## [0.3.3](https://x.test) (2026-12-01)\n\n- Pin axe-mcp-server@1.5.0 ([abc](https://x.test))\n",
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("ignores files that are not md, json, sh, or yaml", () => {
   const result = check({
     "README.md": readme,
