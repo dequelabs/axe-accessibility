@@ -85,16 +85,16 @@ Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the p
 
 `pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title). Each one also runs on its own:
 
-| Command                        | Checks                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------ |
-| `pnpm check:format`            | Formatting (Prettier; `pnpm fmt` fixes it)                               |
-| `pnpm check:lint`              | Lint for JavaScript, JSON, and Markdown (ESLint)                         |
-| `pnpm check:spelling`          | Spelling (cspell); add legitimate words to `project-words.txt`           |
-| `pnpm check:shell`             | Shell scripts (ShellCheck)                                               |
-| `pnpm check:manifests`         | `claude plugin validate --strict` on both manifests in `.claude-plugin/` |
-| `pnpm check:links`             | Links in Markdown files, local and external (linkinator)                 |
-| `pnpm check:workflow-timeouts` | Every GitHub Actions job sets `timeout-minutes`                          |
-| `pnpm test`                    | Tests for the repo's own scripts                                         |
+| Command                        | Checks                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| `pnpm check:format`            | Formatting (Prettier; `pnpm fmt` fixes it)                                     |
+| `pnpm check:lint`              | Lint for JavaScript, JSON, and Markdown (ESLint)                               |
+| `pnpm check:spelling`          | Spelling (cspell); add legitimate words to `project-words.txt`                 |
+| `pnpm check:shell`             | Shell scripts (ShellCheck; install it locally, e.g. `brew install shellcheck`) |
+| `pnpm check:manifests`         | `claude plugin validate --strict` on both manifests in `.claude-plugin/`       |
+| `pnpm check:links`             | Links in Markdown files, local and external (linkinator)                       |
+| `pnpm check:workflow-timeouts` | Every GitHub Actions job sets `timeout-minutes`                                |
+| `pnpm test`                    | Tests for the repo's own scripts                                               |
 
 ## Releasing
 
