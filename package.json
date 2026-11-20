@@ -22,7 +22,7 @@
     "pre-commit": "lint-staged"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "2.1.311",
+    "@anthropic-ai/claude-code": "2.1.323",
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^2.1.1",
     "@eslint/markdown": "^8.0.3",
