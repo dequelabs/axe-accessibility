@@ -137,7 +137,7 @@ Collection, use, storage, third-party sharing, retention, and regional processin
 
 ## Ownership
 
-This plugin is owned and maintained by Deque's MCP team ([@dequelabs/mcp-team](https://github.com/orgs/dequelabs/teams/mcp-team)).
+This plugin is owned and maintained by Deque's MCP team (`@dequelabs/mcp-team`).
 
 ## License
 
