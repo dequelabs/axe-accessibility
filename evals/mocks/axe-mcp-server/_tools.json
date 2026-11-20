@@ -1,0 +1,81 @@
+{
+  "tools": [
+    {
+      "name": "analyze",
+      "description": "Scan a web page for accessibility issues with Axe DevTools. Optionally runs guided tests (keyboard, interactive-elements, modal) on the same page through igtTools; guided tests use AI and consume credits.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Complete URL of the page to scan, including scheme and port"
+          },
+          "selector": {
+            "description": "Scope the scan to one element; an array traverses iframe and shadow DOM boundaries",
+            "anyOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "advancedRules": {
+            "type": "string",
+            "enum": ["precise", "balanced", "thorough", "disabled"]
+          },
+          "igtTools": {
+            "type": "array",
+            "description": "Guided tests to run after the scan. Each one consumes AI credits",
+            "items": {
+              "type": "string",
+              "enum": ["keyboard", "interactive-elements", "modal"]
+            }
+          },
+          "includeSelectors": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "modalTriggerSelector": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "modalSelector": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "viewportWidth": { "type": "number" },
+          "viewportHeight": { "type": "number" }
+        },
+        "required": ["url"]
+      }
+    },
+    {
+      "name": "remediate",
+      "description": "Get AI fix guidance for a batch of accessibility issues. Consumes AI credits per issue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "pageUrl": { "type": "string" },
+                "rule": { "type": "string" },
+                "elementHtml": { "type": "string" },
+                "remediation": { "type": "string" }
+              },
+              "required": ["id", "rule", "elementHtml", "remediation"]
+            }
+          }
+        },
+        "required": ["issues"]
+      }
+    }
+  ]
+}

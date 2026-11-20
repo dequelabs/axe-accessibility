@@ -1,0 +1,52 @@
+name: Evals
+
+# On demand only: every run calls the model and costs money, so it is never a
+# PR check.
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: Run only the cases whose name matches this glob (default all)
+        type: string
+        default: "*"
+      runs:
+        description: Runs per case per arm
+        type: choice
+        default: "3"
+        options:
+          - "1"
+          - "3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/deps
+      - name: Run the eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY_EVALS }}
+          CASE: ${{ inputs.case }}
+          RUNS: ${{ inputs.runs }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::The ANTHROPIC_API_KEY_EVALS secret is not set."
+            exit 1
+          fi
+          pnpm run evals --case "$CASE" --runs "$RUNS" --output-dir evals/results/ci
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-results
+          path: evals/results/ci/
+          if-no-files-found: ignore
