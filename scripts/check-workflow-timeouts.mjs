@@ -24,7 +24,7 @@ function findJobsWithoutTimeout() {
       // A job that calls a reusable workflow via `uses:` cannot set
       // timeout-minutes itself, so it is out of scope.
       if (job && typeof job === "object" && "uses" in job) continue;
-      if (job?.["timeout-minutes"] === undefined) {
+      if (job?.["timeout-minutes"] == null) {
         violations.push(`${file}: job "${id}" is missing timeout-minutes`);
       }
     }

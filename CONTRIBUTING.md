@@ -14,7 +14,7 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 
 ## Checks
 
-`pnpm check` runs every check and the tests, as CI does. Each also runs on its own:
+`pnpm check` runs every check and the tests that CI runs, except the PR title check. Each also runs on its own:
 
 | Command                            | Checks                                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -32,7 +32,7 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 
 Each convention is enforced or shown by a file in this repo:
 
-- **Pre-commit hook.** [`.husky/pre-commit`](.husky/pre-commit) runs [`lint-staged.config.js`](lint-staged.config.js), which formats and lints staged files and runs the version check.
+- **Pre-commit hook.** [`.husky/pre-commit`](.husky/pre-commit) runs [`lint-staged.config.js`](lint-staged.config.js), which formats, lints, and spell-checks staged files and runs the version check.
 - **CI.** [`.github/workflows/checks.yml`](.github/workflows/checks.yml) runs the same checks as `pnpm check` on every PR.
 - **Workflow timeouts.** Every job in `.github/workflows/` sets `timeout-minutes`, enforced by [`scripts/check-workflow-timeouts.mjs`](scripts/check-workflow-timeouts.mjs).
 - **PR titles.** Conventional Commits with the first word capitalized (`fix: Use the pinned Playwright version`), enforced by [`.github/workflows/semantic-pr-title.yml`](.github/workflows/semantic-pr-title.yml).

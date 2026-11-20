@@ -6,4 +6,5 @@ module.exports = {
   // Pins must agree across files, so check the whole repo rather than the
   // staged paths lint-staged would otherwise append.
   "*.{md,json,sh,yml,yaml}": () => "node scripts/check-versions.mjs",
+  "*": "cspell --no-progress --no-must-find-files --gitignore",
 };
