@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       release-type:
-        description: SemVer release type (empty picks one from the commits since the last release)
+        description: SemVer release type (automatic picks one from the commits since the last release)
         type: choice
-        default: ""
+        default: automatic
         options:
-          - ""
+          - automatic
           - major
           - minor
           - patch
@@ -31,17 +31,13 @@ jobs:
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
         run: |
-          if [ -z "$RELEASE_TYPE" ]; then
+          if [ "$RELEASE_TYPE" = automatic ]; then
             RELEASE_TYPE=$(node scripts/release-type.mjs)
           fi
           pnpm run release --release-as "$RELEASE_TYPE"
           pnpm exec prettier --write CHANGELOG.md .claude-plugin
           pnpm run check:versions
-      # Pushes and PRs made with the default GITHUB_TOKEN don't trigger
-      # workflows, so CI would never run on the release PR.
-      - name: Open the release PR
-        env:
-          GH_TOKEN: ${{ secrets.PAT }}
+      - name: Commit the release
         run: |
           VERSION=$(node -p 'require("./.claude-plugin/plugin.json").version')
           BRANCH="release-${VERSION}"
@@ -51,6 +47,18 @@ jobs:
           git config user.email aciattestteamci@deque.com
           git switch -c "$BRANCH"
           git commit -am "$TITLE"
+
+          {
+            echo "VERSION=${VERSION}"
+            echo "BRANCH=${BRANCH}"
+            echo "TITLE=${TITLE}"
+          } >> "$GITHUB_ENV"
+      # Pushes and PRs made with the default GITHUB_TOKEN don't trigger
+      # workflows, so CI would never run on the release PR.
+      - name: Open the release PR
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"
 
           INCLUDED=$(node scripts/release-issues.mjs)

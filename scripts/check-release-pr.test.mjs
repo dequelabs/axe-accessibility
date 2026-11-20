@@ -4,10 +4,17 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./check-release-pr.mjs", import.meta.url).pathname;
+const script = fileURLToPath(
+  new URL("./check-release-pr.mjs", import.meta.url),
+);
 
-function manifests(version, ref = `v${version}`) {
+function manifests(
+  version,
+  ref = `v${version}`,
+  url = "https://example.test/x.git",
+) {
   return {
     ".claude-plugin/plugin.json": JSON.stringify({
       name: "axe-accessibility",
@@ -17,7 +24,7 @@ function manifests(version, ref = `v${version}`) {
       plugins: [
         {
           name: "axe-accessibility",
-          source: { source: "url", url: "https://example.test/x.git", ref },
+          source: { source: "url", url, ref },
         },
       ],
     }),
@@ -135,6 +142,16 @@ test("fails first pinning the marketplace entry to another version's tag", () =>
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /undefined -> v0\.3\.1/);
+});
+
+test("fails a change to the marketplace source's URL outside a release PR", () => {
+  const result = check({
+    changes: manifests("0.3.2", "v0.3.2", "https://example.test/fork.git"),
+    branch: "move-source",
+    title: "fix: Install from a fork",
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /fork\.git/);
 });
 
 test("fails a release branch whose title is not the release title", () => {

@@ -11,8 +11,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./publish-release.mjs", import.meta.url).pathname;
+const script = fileURLToPath(new URL("./publish-release.mjs", import.meta.url));
 
 const fakeGh = `#!/usr/bin/env node
 const { appendFileSync, readFileSync } = require("node:fs");
@@ -106,7 +107,7 @@ test("does nothing after a merge that doesn't change the version", () => {
   );
   const result = publish(repo);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /v0\.3\.2 is already released/);
+  assert.match(result.stdout, /The v0\.3\.2 GitHub release already exists/);
   assert.deepEqual(result.calls, []);
 });
 
@@ -189,19 +190,44 @@ test("fails when a version bump's tag already exists on another commit", () => {
   assert.deepEqual(result.calls, []);
 });
 
-test("fails instead of tagging a later commit when the release commit wasn't tagged", () => {
+test("tags the release commit, not a later one, when its run didn't", () => {
   const repo = setup();
   commit(repo.dir, "chore(release): v0.4.0 (#31)", () =>
     setVersion(repo.dir, "0.4.0", "- New\n"),
   );
+  const release = git(repo.dir, "rev-parse", "HEAD");
   commit(repo.dir, "fix: Later (#32)", () =>
     writeFileSync(join(repo.dir, "README.md"), "later"),
   );
+  commit(repo.dir, "fix: Even later (#33)", () =>
+    writeFileSync(join(repo.dir, "README.md"), "even later"),
+  );
   const result = publish(repo);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(remoteTag(repo.origin, "v0.4.0").commit, release);
+  assert.equal(result.calls[0].args[1], "create");
+  assert.equal(result.calls[0].stdin, "- New\n");
+});
+
+test("fails in a shallow clone, where it can't find the release commit", () => {
+  const repo = setup();
+  commit(repo.dir, "chore(release): v0.4.0 (#31)", () =>
+    setVersion(repo.dir, "0.4.0", "- New\n"),
+  );
+  const shallow = join(repo.dir, "..", "shallow");
+  git(
+    repo.dir,
+    "clone",
+    "-q",
+    "--depth",
+    "1",
+    `file://${repo.origin}`,
+    shallow,
+  );
+  const result = publish({ ...repo, dir: shallow });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /v0\.4\.0 isn't tagged/);
+  assert.match(result.stderr, /full history/);
   assert.equal(remoteTag(repo.origin, "v0.4.0"), null);
-  assert.deepEqual(result.calls, []);
 });
 
 test("fails before tagging when CHANGELOG.md has no entry", () => {

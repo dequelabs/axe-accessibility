@@ -4,8 +4,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./release-issues.mjs", import.meta.url).pathname;
+const script = fileURLToPath(new URL("./release-issues.mjs", import.meta.url));
 
 // Stands in for GitHub: a commit belongs to the PRs FAKE_GH_COMMITS lists for
 // its subject, or else to the PR its "(#N)" suffix names.
