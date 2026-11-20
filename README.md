@@ -58,7 +58,7 @@ Every package the plugin launches with `npx` is pinned to an exact version, so w
 
 Where the guidance and the server ever diverge, the server wins and the agent still gets it right: the Axe MCP Server builds its tool descriptions and input schemas at startup, so the live description of `analyze` always carries the current parameters and response shape. The skills tell agents to treat that as authoritative. `serverInfo.version` in the MCP `initialize` response reports what is actually running.
 
-**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved. Users get the change with the next [release](#releasing).
+**Updating for a new server release** (maintainers): users get a new server only through a plugin release. Update every reference to the server version and the Playwright version together, including prose like "pinned 1.6.0" and the API key option's description in `.claude-plugin/plugin.json`: `grep -rnE --exclude=CHANGELOG.md '1\.6\.0|1\.62\.1' .` lists them all. The new Playwright version is `npm view axe-mcp-server@<version> dependencies.playwright`. Re-check the documented response shapes and update `skills/mcp-usage/references/field-mapping.md` if anything moved. Users get the change with the next [release](#releasing).
 
 Run `/axe-accessibility:mcp-setup` to configure either one, for any supported client. Full snippets for all four distribution × auth combinations are in `skills/mcp-setup/references/client-configs.md`.
 
@@ -83,7 +83,7 @@ Once the plugin is accepted into the [Claude plugin directory](https://claude.co
 
 Requires the Node version in `.nvmrc` and pnpm (`corepack enable` picks up the pinned version). `pnpm install` also installs a pre-commit hook that formats, lints, and spell-checks staged files.
 
-`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title). Each one also runs on its own:
+`pnpm check` runs every check CI runs except the PR title check (CI requires a Conventional Commit title) and the [Release PR](#releasing) check. Each one also runs on its own:
 
 | Command                        | Checks                                                                         |
 | ------------------------------ | ------------------------------------------------------------------------------ |
