@@ -10,7 +10,7 @@ Every `analyze` call that includes `igtTools` consumes credits for each guided t
 
 - **Run only the tests the user asked for.** "Check keyboard access" is `["keyboard"]`. Adding `interactive-elements` and `modal` "while you're there" triples the guided-test spend for answers nobody requested.
 - **Don't put guided tests in verification rounds by default.** Verify fixes with a plain `analyze` (free). Re-run a guided test only when the user wants that test re-checked, and say it costs credits again.
-- **Narrow `interactive-elements` before it spends.** `includeSelectors` limits it to the controls the user cares about. On a control-heavy page, **phased selection** (`interactive: true`, then `sessionID` + `selectedIDs`) lets the user pick elements *before* any AI analysis runs. That is the server's own credit-saving path for this test.
+- **Narrow `interactive-elements` before it spends.** `includeSelectors` limits it to the controls the user cares about. On a control-heavy page, **phased selection** (`interactive: true`, then `sessionID` + `selectedIDs`) lets the user pick elements _before_ any AI analysis runs. That is the server's own credit-saving path for this test.
 - **`terminatedReason: "insufficient-credits"`** means the allocation ran out mid-run. Results are partial. Report it; do not retry.
 
 ## When to economize
@@ -38,29 +38,29 @@ Two levers, in order of preference:
 
 Join the `selector` array with a separator first so a frame/shadow path stays distinct from a top-frame one. Measured collapse on the same page:
 
-| rule | issues | distinct raw selectors | distinct normalized |
-|---|---|---|---|
-| `target-size` | 23 | 23 | **19** |
-| `link-name` | 8 | 8 | **6** |
-| `image-alt` | 4 | 4 | **2** |
-| `focus-on-hidden-item` (keyboard guided test) | 7 | 7 | **4** |
+| rule                                          | issues | distinct raw selectors | distinct normalized |
+| --------------------------------------------- | ------ | ---------------------- | ------------------- |
+| `target-size`                                 | 23     | 23                     | **19**              |
+| `link-name`                                   | 8      | 8                      | **6**               |
+| `image-alt`                                   | 4      | 4                      | **2**               |
+| `focus-on-hidden-item` (keyboard guided test) | 7      | 7                      | **4**               |
 
 Same-normalized-path issues are the same element in the same structural position across repeated siblings — i.e. one component rendered N times, which is exactly the group whose fix is shared.
 
 ## Content-dependent rules need a second condition
 
-Element identity alone is not sufficient when the correct fix depends on the element's *content*. A product grid of 12 cards, each with a different image, yields 12 `image-alt` issues that all share one normalized selector — and every one needs **different** alt text. Collapsing to a single representative would give you one alt string that is right for one card and wrong for eleven.
+Element identity alone is not sufficient when the correct fix depends on the element's _content_. A product grid of 12 cards, each with a different image, yields 12 `image-alt` issues that all share one normalized selector — and every one needs **different** alt text. Collapsing to a single representative would give you one alt string that is right for one card and wrong for eleven.
 
 So for these rules, require the content-bearing part to match **as well as** the element identity:
 
-| rule | also require |
-|---|---|
-| `image-alt`, `input-image-alt`, `area-alt` | identical `src` |
-| `link-name`, `button-name` | identical text content / `href` |
-| `label`, `select-name` | identical associated prompt |
-| `frame-title` | identical frame `src` |
+| rule                                       | also require                    |
+| ------------------------------------------ | ------------------------------- |
+| `image-alt`, `input-image-alt`, `area-alt` | identical `src`                 |
+| `link-name`, `button-name`                 | identical text content / `href` |
+| `label`, `select-name`                     | identical associated prompt     |
+| `frame-title`                              | identical frame `src`           |
 
-In practice this means: for content-dependent rules, group by `rule` + normalized selector + `source`. On the page measured above that correctly collapses three instances of the *same* `mars-spaceman.jpg` in a repeated card into one request, while it would have kept twelve genuinely different card images separate.
+In practice this means: for content-dependent rules, group by `rule` + normalized selector + `source`. On the page measured above that correctly collapses three instances of the _same_ `mars-spaceman.jpg` in a repeated card into one request, while it would have kept twelve genuinely different card images separate.
 
 For structural and style rules — `color-contrast`, `target-size`, `aria-*`, `region`, `heading-order` — the normalized selector alone is fine, because the fix is a token, a role, or a size and does not vary with the element's text.
 
@@ -77,5 +77,5 @@ For structural and style rules — `color-contrast`, `target-size`, `aria-*`, `r
 The result covers a group, so apply it deliberately:
 
 1. Fix the shared component once where possible — that is the whole reason the group exists.
-2. Where the rule is content-dependent, apply the *pattern* from the guidance and author per-instance content yourself (alt text, accessible names) rather than copying the representative's string to every site.
+2. Where the rule is content-dependent, apply the _pattern_ from the guidance and author per-instance content yourself (alt text, accessible names) rather than copying the representative's string to every site.
 3. Verify with a full `analyze` as normal. Verification is free, and it is what catches a group that should not have been grouped: if a collapsed rule still reports violations at the other instances, your key was too loose — send those individually next round.

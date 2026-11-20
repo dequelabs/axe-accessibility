@@ -33,9 +33,10 @@ Verify the chosen prerequisite before writing config:
   ```
 
   If a scan later fails with `Chromium is not installed`, run the install command that error message prints, verbatim: it names the version the running server actually expects, which is authoritative over anything precomputed.
+
 - Docker: `docker info` (daemon must be running). Chromium ships inside the image, so no browser step is needed.
 
-> **The package name is unscoped: `axe-mcp-server`** — *not* `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
+> **The package name is unscoped: `axe-mcp-server`** — _not_ `@deque/axe-mcp-server`, which does not exist. Only the auth CLI is scoped (`@deque/axe-auth`). This is an easy mistake to make.
 
 ## Step 2 — Choose authentication
 
@@ -60,7 +61,7 @@ Ask which method to use (`AskUserQuestion`):
 1. Log in: `npx -y @deque/axe-auth@1.6.0 login` (add `--server <url>` for private cloud / on-prem). This opens a browser for the PKCE flow and stores tokens in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Requires Node 22 LTS+.
 2. Verify a token can be minted: `npx -y @deque/axe-auth@1.6.0 token` should print a token. Logout later with `npx -y @deque/axe-auth@1.6.0 logout`.
 
-> **npm + OAuth needs an explicit `unset`.** Under Docker, credentials are passed with explicit `-e` flags, so an inherited `AXE_API_KEY` never reaches the server. The npm distribution inherits the whole shell environment — so if the user has `AXE_API_KEY` exported *and* an OAuth session, both variables reach the server and it fails at startup. Any npm+OAuth config must `unset AXE_API_KEY` when it sets `AXE_ACCESS_TOKEN`. The bundled config does this.
+> **npm + OAuth needs an explicit `unset`.** Under Docker, credentials are passed with explicit `-e` flags, so an inherited `AXE_API_KEY` never reaches the server. The npm distribution inherits the whole shell environment — so if the user has `AXE_API_KEY` exported _and_ an OAuth session, both variables reach the server and it fails at startup. Any npm+OAuth config must `unset AXE_API_KEY` when it sets `AXE_ACCESS_TOKEN`. The bundled config does this.
 
 ## Step 3 — Choose the client
 

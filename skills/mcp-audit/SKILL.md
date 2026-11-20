@@ -18,7 +18,7 @@ Take a page from "has violations" to "zero violations" by iterating the Axe MCP 
 Reaching the page:
 
 - **Behind a login or interaction:** pass `before` steps (`click` / `fill` / `waitFor`) to `analyze`. Put secrets only in a `fill` step's `value`, never in a selector.
-- **Behind environment routing or a session cookie:** pass `cookies` instead — they are set *before* navigation, so they can influence how the first request is routed, which `before` cannot. Secrets go in a cookie's `value`, never its `name`.
+- **Behind environment routing or a session cookie:** pass `cookies` instead — they are set _before_ navigation, so they can influence how the first request is routed, which `before` cannot. Secrets go in a cookie's `value`, never its `name`.
 - **Auditing one component rather than a whole page:** pass `selector` to scope the scan. Confirm the selector actually exists first — a non-matching selector fails the entire scan.
 
 ## The loop
@@ -44,7 +44,8 @@ Repeat until zero violations or the round cap:
    Do **not** pass the issue's own `remediation` field — it is an object of raw axe check data, not the string this parameter expects.
 
    If the response is `data.upgradeRequired: true` instead of a results array, the account is on the free tier: relay `data.message`, stop the loop, and report the scan's findings without fixes.
-4. **Apply fixes to source.** Correlate each result back by `id` and check its `status` — a batch can partially fail, and a failed entry carries `error` instead of `remediation`. For each success, locate the responsible code (use Grep/Glob to find the component rendering the element) and apply the guidance. `code_fix` is a suggested snippet derived only from the element HTML sent — adapt it to the real component rather than pasting it. When several issues turn out to share one component, fix the root cause there rather than patching each call site — but note that this is a conclusion about *where the edit goes*, reached after reading the per-issue guidance. It is not a reason to have sent fewer issues. Apply image-alt and other judgment-heavy rules per the conventions in the `mcp-usage` skill's `references/rule-tips.md`.
+
+4. **Apply fixes to source.** Correlate each result back by `id` and check its `status` — a batch can partially fail, and a failed entry carries `error` instead of `remediation`. For each success, locate the responsible code (use Grep/Glob to find the component rendering the element) and apply the guidance. `code_fix` is a suggested snippet derived only from the element HTML sent — adapt it to the real component rather than pasting it. When several issues turn out to share one component, fix the root cause there rather than patching each call site — but note that this is a conclusion about _where the edit goes_, reached after reading the per-issue guidance. It is not a reason to have sent fewer issues. Apply image-alt and other judgment-heavy rules per the conventions in the `mcp-usage` skill's `references/rule-tips.md`.
 5. **Re-analyze (verify).** Re-run `analyze` on the same URL. If zero, stop and report success. Otherwise continue to the next round with the remaining issues.
 
 Track issue counts per round so progress is visible (e.g. `round 1: 7 -> round 2: 2 -> round 3: 0`).

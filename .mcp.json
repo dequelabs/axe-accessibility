@@ -3,9 +3,7 @@
     "axe-mcp-server": {
       "type": "stdio",
       "command": "sh",
-      "args": [
-        "${CLAUDE_PLUGIN_ROOT}/scripts/start-axe-mcp-server.sh"
-      ],
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/start-axe-mcp-server.sh"],
       "env": {
         "AXE_API_KEY": "${user_config.api_key}"
       }

@@ -1,0 +1,6 @@
+onlyBuiltDependencies:
+  - "@anthropic-ai/claude-code"
+
+# 10020 minutes ≈ 6d23h — new installs reject packages published less than
+# ~7 days ago (supply-chain protection), matching axe-mcp-server.
+minimumReleaseAge: 10020

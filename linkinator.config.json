@@ -1,0 +1,12 @@
+{
+  "markdown": true,
+  "recurse": true,
+  "concurrency": 10,
+  "timeout": 30000,
+  "retry": true,
+  "retryErrors": true,
+  "retryErrorsCount": 3,
+  "retryErrorsJitter": 3000,
+  "skip": ["^http://localhost", "node_modules"],
+  "verbosity": "error"
+}

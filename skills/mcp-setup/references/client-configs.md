@@ -38,7 +38,7 @@ Shapes 1–3 are npm, 4–6 are Docker. Later sections refer to these by number.
 }
 ```
 
-> **The `unset` is required, not defensive.** The npm distribution inherits the entire shell environment. If the user has `AXE_API_KEY` exported (very common) *and* an OAuth session, both variables reach the server and it refuses to start. Docker does not have this problem because credentials arrive only via explicit `-e` flags.
+> **The `unset` is required, not defensive.** The npm distribution inherits the entire shell environment. If the user has `AXE_API_KEY` exported (very common) _and_ an OAuth session, both variables reach the server and it refuses to start. Docker does not have this problem because credentials arrive only via explicit `-e` flags.
 >
 > The same reasoning runs the other way, which is why shape 3 opens with `unset AXE_ACCESS_TOKEN`: a stale `AXE_ACCESS_TOKEN` exported in the shell would otherwise survive alongside `AXE_API_KEY` whenever no OAuth session is available, producing the identical both-credentials startup failure. Any npm wrapper must clear whichever variable it is not deliberately setting.
 
@@ -96,16 +96,16 @@ Set `AXE_API_KEY` and `AXE_SERVER_URL` in the environment that launches the clie
 
 ## Environment variables
 
-| Variable | Purpose | Default | Distribution |
-|---|---|---|---|
-| `AXE_API_KEY` | API key auth. Mutually exclusive with `AXE_ACCESS_TOKEN`. | — | both |
-| `AXE_ACCESS_TOKEN` | OAuth 2.0 bearer token. Mutually exclusive with `AXE_API_KEY`. | — | both |
-| `AXE_SERVER_URL` | Account Portal base URL; required for regional SaaS, private cloud, on-prem. | `https://axe.deque.com` | both |
-| `AXE_ADVANCED_RULES` | Default Advanced Rules confidence preset: `precise` \| `balanced` \| `thorough` \| `disabled`. Individual scans override it with the `advancedRules` parameter. | org default | both |
-| `AXE_CHROME_PATH` | Chrome/Chromium binary to use instead of the Playwright-managed install. **Fails at startup if set under Docker.** | Playwright's | **npm only** |
-| `AXE_SCREENSHOT_DIR` | Directory `analyze` writes screenshots to when called with `screenshot: { save: true }`. Under Docker it is inside the container — mount a volume to reach it. | OS temp dir | both |
-| `BROWSER_TIMEOUT_MS` | Browser interaction timeout. | `30000` | both |
-| `LOG_LEVEL` | `debug` \| `info` \| `warn` \| `error`. | `info` | both |
+| Variable             | Purpose                                                                                                                                                         | Default                 | Distribution |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------ |
+| `AXE_API_KEY`        | API key auth. Mutually exclusive with `AXE_ACCESS_TOKEN`.                                                                                                       | —                       | both         |
+| `AXE_ACCESS_TOKEN`   | OAuth 2.0 bearer token. Mutually exclusive with `AXE_API_KEY`.                                                                                                  | —                       | both         |
+| `AXE_SERVER_URL`     | Account Portal base URL; required for regional SaaS, private cloud, on-prem.                                                                                    | `https://axe.deque.com` | both         |
+| `AXE_ADVANCED_RULES` | Default Advanced Rules confidence preset: `precise` \| `balanced` \| `thorough` \| `disabled`. Individual scans override it with the `advancedRules` parameter. | org default             | both         |
+| `AXE_CHROME_PATH`    | Chrome/Chromium binary to use instead of the Playwright-managed install. **Fails at startup if set under Docker.**                                              | Playwright's            | **npm only** |
+| `AXE_SCREENSHOT_DIR` | Directory `analyze` writes screenshots to when called with `screenshot: { save: true }`. Under Docker it is inside the container — mount a volume to reach it.  | OS temp dir             | both         |
+| `BROWSER_TIMEOUT_MS` | Browser interaction timeout.                                                                                                                                    | `30000`                 | both         |
+| `LOG_LEVEL`          | `debug` \| `info` \| `warn` \| `error`.                                                                                                                         | `info`                  | both         |
 
 ---
 
