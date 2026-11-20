@@ -1,19 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./check-workflow-timeouts.mjs", import.meta.url)
-  .pathname;
+const script = fileURLToPath(
+  new URL("./check-workflow-timeouts.mjs", import.meta.url),
+);
 
 function check(workflows) {
   const dir = mkdtempSync(join(tmpdir(), "workflows-"));
   for (const [name, content] of Object.entries(workflows)) {
     writeFileSync(join(dir, name), content);
   }
-  return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
+  try {
+    return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 test("passes when every job sets timeout-minutes", () => {
@@ -56,6 +62,20 @@ jobs:
   assert.equal(result.status, 1);
   assert.match(result.stderr, /ci\.yml: job "slow" is missing timeout-minutes/);
   assert.doesNotMatch(result.stderr, /ok\.yaml/);
+});
+
+test("fails when timeout-minutes is blank", () => {
+  const result = check({
+    "ci.yml": `
+jobs:
+  blank:
+    runs-on: ubuntu-latest
+    timeout-minutes:
+    steps: [{ run: "true" }]
+`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /job "blank" is missing timeout-minutes/);
 });
 
 test("ignores a workflow-level timeout-minutes", () => {
