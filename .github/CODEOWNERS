@@ -1,3 +1,4 @@
 * @dequelabs/mcp-team
 
 /.mcp.json @dequelabs/mcp-team-admin
+/.github/CODEOWNERS @dequelabs/mcp-team-admin
