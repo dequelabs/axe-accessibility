@@ -22,8 +22,8 @@ Spelling failures on real words: add them to `project-words.txt`. `check:links` 
 ## Rules the code doesn't show
 
 - **Skills are customer-facing.** Every file under `skills/` is instructions that customers' agents follow literally. Editing a skill changes what those agents do on customers' machines. Write for that reader, and treat a wording change as a behavior change.
-- **Content reaches users only through a release.** Merging to `main` ships nothing. Users get a change when a release that includes it is published; see the [README](README.md#publishing).
-- **Only release PRs change the plugin version** (`version` in `.claude-plugin/plugin.json`). Release PRs are opened by the "Create release PR" workflow from a `release-<version>` branch, titled `chore(release): v<version>`. Never bump the version in any other PR.
+- **Content reaches users only through a release.** Merging to `main` ships no plugin content to users of the `deque` marketplace; they get a change when a release that includes it is published (see [Releasing](README.md#releasing)). Two exceptions, described in [Publishing](README.md#publishing): the marketplace entry's own metadata, such as its description, reaches users from `main` directly, and the Claude plugin directory serves whichever branch or tag its listing tracks.
+- **Only release PRs change the plugin version** (`version` in `.claude-plugin/plugin.json`) or the marketplace entry's `source.ref`. CI fails any other PR that changes either. Release PRs are opened by the "Create release PR" workflow from a `release-<version>` branch, titled `chore(release): v<version>`. Never bump the version in any other PR.
 - **Customers depend on these names.** Renaming or removing any of them is a breaking change:
   - plugin `axe-accessibility` and marketplace `deque`
   - skills `mcp-audit`, `mcp-generate-instructions`, `mcp-setup`, `mcp-usage` (invoked as `/axe-accessibility:<skill>`)

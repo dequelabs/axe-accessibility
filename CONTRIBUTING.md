@@ -31,14 +31,14 @@ Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to 
 
 ## Conventions
 
-Each convention is enforced or shown by a file in this repo:
+Each convention links the file that enforces or shows it, where one exists:
 
 - **Pre-commit hook.** [`.husky/pre-commit`](.husky/pre-commit) runs [`lint-staged.config.js`](lint-staged.config.js), which formats, lints, and spell-checks staged files and runs the version check.
 - **CI.** [`.github/workflows/checks.yml`](.github/workflows/checks.yml) runs the same checks as `pnpm check` on every PR.
 - **Workflow timeouts.** Every job in `.github/workflows/` sets `timeout-minutes`, enforced by [`scripts/check-workflow-timeouts.mjs`](scripts/check-workflow-timeouts.mjs).
-- **PR titles.** Conventional Commits with the first word capitalized (`fix: Use the pinned Playwright version`), enforced by [`.github/workflows/semantic-pr-title.yml`](.github/workflows/semantic-pr-title.yml).
-- **PR descriptions.** PRs are squash-merged with the title and description as the commit, so the description is the commit body. Describe what changes for users and why, without headings or checklists, and end with `Closes #N`.
-- **Branch names.** No type prefix: `token-refresh`, not `feat/token-refresh`.
+- **PR titles.** Conventional Commits, enforced by [`.github/workflows/semantic-pr-title.yml`](.github/workflows/semantic-pr-title.yml). Capitalize the first word after the prefix (`fix: Use the pinned Playwright version`); CI doesn't check that part.
+- **PR descriptions.** PRs are squash-merged with the title and description as the commit, so the description is the commit body. Describe what changes for users and why, without headings or checklists, and end with `Closes #N`. The [PR template](.github/pull_request_template.md) prompts for this.
+- **Branch names.** No type prefix: `token-refresh`, not `feat/token-refresh`. Nothing enforces this.
 - **Pinned versions.** Current pins are recognized by the patterns in [`scripts/check-versions.mjs`](scripts/check-versions.mjs). Historical references like "needs 1.5.0+" are never bumped.
 - **Skills.** Each skill is a directory with a `SKILL.md` whose frontmatter `name` is the name customers invoke, plus optional `references/`. See [`skills/mcp-setup/`](skills/mcp-setup/SKILL.md).
 
