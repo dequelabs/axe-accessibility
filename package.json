@@ -19,7 +19,7 @@
     "test": "node --test",
     "fmt": "prettier --write .",
     "prepare": "husky",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged && pnpm run check:versions"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "2.1.323",

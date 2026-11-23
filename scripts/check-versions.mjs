@@ -5,7 +5,8 @@ import { basename, extname, join } from "node:path";
 // Only phrasings that state the *current* pin are listed, so prose about past
 // releases ("needs 1.5.0+", "since server 1.4.0") is ignored by default. A new
 // way of writing a current pin needs a pattern here, or the check won't see it.
-const VERSION = String.raw`(\d+\.\d+\.\d+(?:-[\w.]+)?)`;
+const IDENTIFIERS = String.raw`[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*`;
+const VERSION = String.raw`(\d+\.\d+\.\d+(?:-${IDENTIFIERS})?(?:\+${IDENTIFIERS})?)`;
 const MARKUP = "[*_`]*";
 const PINS = {
   "axe-mcp-server": [

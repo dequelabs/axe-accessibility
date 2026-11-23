@@ -166,6 +166,24 @@ for (const [name, before, after] of [
   });
 }
 
+test("compares hyphenated prerelease and build identifiers in full", () => {
+  const result = check({
+    "README.md": readme.replaceAll("1.6.0", "1.7.0-beta-1+build-5"),
+    "skills/setup/SKILL.md": skill.replaceAll("1.6.0", "1.7.0-beta-2+build-5"),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /1\.7\.0-beta-1\+build-5\n/);
+  assert.match(result.stderr, /1\.7\.0-beta-2\+build-5\n/);
+});
+
+test("leaves sentence punctuation out of a prerelease version", () => {
+  const result = check({
+    "README.md": readme.replaceAll("1.6.0", "1.7.0-rc.1"),
+    "skills/setup/SKILL.md": skill.replaceAll("1.6.0", "1.7.0-rc.1"),
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("ignores historical and unrelated versions", () => {
   const result = check({
     "README.md": readme,
