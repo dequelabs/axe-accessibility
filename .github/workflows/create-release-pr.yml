@@ -27,6 +27,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/deps
+      # Runs before the release commit exists: GitHub can't look up PRs for a
+      # commit that hasn't been pushed.
+      - name: Collect the issues closed since the last release
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: node scripts/release-issues.mjs > "$RUNNER_TEMP/included.md"
       - name: Bump the version and update the changelog
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
@@ -59,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          INCLUDED=$(node scripts/release-issues.mjs)
+          INCLUDED=$(cat "$RUNNER_TEMP/included.md")
           CHANGES=$(node scripts/changelog-section.mjs "$VERSION")
 
           BODY=$(cat <<EOM
