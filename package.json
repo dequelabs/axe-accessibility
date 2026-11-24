@@ -21,7 +21,7 @@
     "release": "commit-and-tag-version",
     "fmt": "prettier --write .",
     "prepare": "husky",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged && pnpm run check:versions --staged"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "2.1.323",
