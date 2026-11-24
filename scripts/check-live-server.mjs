@@ -118,10 +118,42 @@ function objectKeys(text) {
   return { keys, values };
 }
 
+// The parameters a "parameters on `tool`" section lists, one bold bullet each.
+// A bullet that names a single parameter can also document its fields: bold
+// names in its sub-bullets, keys of an inline `{ ... }` example, and the names
+// in an "Each ..." sentence about an array's items. Those come back dotted,
+// such as `screenshot.saveTo` and `cookies.domain`.
+function bulletParams(text) {
+  const names = (text) =>
+    [...text.matchAll(/`(\w+)`/g)].map(([, name]) => name);
+  const keys = [];
+  for (const [bullet, lead] of text.matchAll(
+    /^- \*\*(.+?)\*\*.*(?:\n[ \t]+\S.*)*/gm,
+  )) {
+    const params = names(lead);
+    keys.push(...params);
+    if (params.length !== 1) continue;
+    const fields = [
+      ...[...bullet.matchAll(/^[ \t]+- .*/gm)].flatMap(([line]) =>
+        [...line.matchAll(/\*\*`(\w+)/g)].map(([, name]) => name),
+      ),
+      ...[...bullet.matchAll(/`(\{[^`]*\})`/g)].flatMap(([, literal]) => [
+        ...objectKeys(literal).keys,
+      ]),
+      ...[...bullet.matchAll(/\bEach\b[^.]*/g)].flatMap(([sentence]) =>
+        names(sentence),
+      ),
+    ];
+    keys.push(...fields.map((field) => `${params[0]}.${field}`));
+  }
+  return keys;
+}
+
 function documentedParams() {
   const params = Object.fromEntries(
     TOOLS.map((tool) => [tool, { keys: new Set(), values: new Map() }]),
   );
+  let listed = 0;
   for (const file of markdownFiles(join(root, "skills"))) {
     const markdown = readFileSync(file, "utf8");
     // Only calls in code blocks: prose also quotes wrong, outdated calls as
@@ -146,11 +178,22 @@ function documentedParams() {
         markdown,
         new RegExp(`^#+ .*parameters on \`${tool}\``),
       );
-      for (const bullet of text?.match(/^- \*\*.+?\*\*/gm) ?? []) {
-        for (const [, name] of bullet.matchAll(/`(\w+)`/g)) {
-          params[tool].keys.add(name);
-        }
+      for (const key of bulletParams(text ?? "")) {
+        params[tool].keys.add(key);
+        listed++;
       }
+    }
+  }
+  if (listed === 0) {
+    fail(
+      'Could not find a bulleted list under a heading ending in "parameters on `analyze`" in skills/. If it was reworded, update scripts/check-live-server.mjs to match.',
+    );
+  }
+  for (const tool of TOOLS) {
+    if (params[tool].keys.size === 0) {
+      fail(
+        `Could not find any \`${tool}\` parameters in skills/. If the examples were reworded, update scripts/check-live-server.mjs to match.`,
+      );
     }
   }
   return params;
@@ -200,8 +243,13 @@ function schemaNodes(schema, path) {
   for (const part of path.split(".")) {
     const isArray = part.endsWith("[]");
     const name = isArray ? part.slice(0, -2) : part;
+    // A prose path such as `cookies.domain` names a field of the array's items.
     nodes = nodes
       .flatMap(alternatives)
+      .flatMap((node) => [
+        node,
+        ...(isArray ? [] : alternatives(node.items ?? {})),
+      ])
       .map((node) => node.properties?.[name])
       .filter(Boolean);
     if (isArray) {
@@ -266,7 +314,14 @@ function responseProblems(documented, response) {
   );
   for (const parent of parents) {
     const value = response[parent];
-    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      if (parent in response) {
+        problems.push(
+          `analyze response field \`${parent}\` is not an object, as documented.`,
+        );
+      }
+      continue;
+    }
     const actual = new Set(Object.keys(value).map((key) => `${parent}.${key}`));
     for (const key of documented.nested) {
       if (key.startsWith(`${parent}.`) && !actual.has(key)) {
@@ -400,6 +455,14 @@ if (!apiKey) {
 
 const params = documentedParams();
 const response = documentedResponse();
+const list = (keys) => [...keys].sort().join(", ");
+for (const tool of TOOLS) {
+  console.log(`Checked ${tool} parameters: ${list(params[tool].keys)}`);
+}
+console.log(
+  `Checked analyze response fields: ${list([...response.topLevel, ...response.optional, ...response.nested])}`,
+);
+console.log(`Checked analyze issue fields: ${list(response.issue)}`);
 const page = await servePage();
 const server = launchServer(apiKey);
 setTimeout(
@@ -409,6 +472,8 @@ setTimeout(
 
 const problems = [];
 let version;
+let advancedRules;
+let error;
 try {
   const init = await server.request("initialize", {
     protocolVersion: "2025-06-18",
@@ -429,21 +494,31 @@ try {
     arguments: { url: page.url, advancedRules: "disabled" },
   });
   const text = result.content?.find((block) => block.type === "text")?.text;
-  if (result.isError) {
-    problems.push(`analyze failed: ${text}`);
-  } else {
-    problems.push(...responseProblems(response, JSON.parse(text)));
+  if (result.isError) throw new Error(`analyze failed: ${text}`);
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(`analyze returned a response that is not JSON: ${text}`);
   }
-} catch (error) {
-  problems.push(error.message);
+  advancedRules = body.advancedRules;
+  problems.push(...responseProblems(response, body));
+} catch (caught) {
+  error = caught;
 } finally {
   server.close();
   page.close();
 }
 
-if (version === undefined) {
+if (error) {
   fail(
-    `The live check could not run: ${problems.join(" ")} See the server's log above.`,
+    `The live check could not run: ${error.message} See the server's log above.`,
+  );
+}
+const { value: resolved, source } = Object(advancedRules);
+if (typeof resolved === "string" && resolved !== "disabled") {
+  fail(
+    `analyze ran with Advanced Rules "${resolved}" (source ${source}) although the check asked for "disabled", so every nightly scan may spend AI credits. Change the check account's Advanced Rules policy so a scan can disable them.`,
   );
 }
 if (problems.length > 0) {

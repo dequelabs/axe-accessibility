@@ -6,7 +6,9 @@ name: Live server check
 # Requires the AXE_API_KEY_DEV secret, an API key from a shared MCP team account,
 # used only by this check. The account must be entitled to Advanced Rules and
 # every guided test (the server hides parameters the account can't use). The
-# AXE_SERVER_URL repository variable overrides the environment.
+# AXE_SERVER_URL repository variable overrides the environment. Scheduled
+# failures alert Slack through the SLACK_BOT_TOKEN secret; without it, they
+# go unnoticed.
 
 on:
   schedule:
@@ -40,6 +42,10 @@ jobs:
         run: |
           server=$(sed -n 's/.*axe-mcp-server@\([0-9.]*\).*/\1/p' scripts/start-axe-mcp-server.sh)
           playwright=$(npm view "axe-mcp-server@$server" dependencies.playwright)
+          if [ -z "$server" ] || [ -z "$playwright" ]; then
+            echo "::error::Could not read the pinned axe-mcp-server version or its Playwright dependency."
+            exit 1
+          fi
           npx -y "playwright@$playwright" install --with-deps chromium
       - run: node scripts/check-live-server.mjs
         env:
