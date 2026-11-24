@@ -5,10 +5,16 @@ name: Live server check
 #
 # Requires the AXE_API_KEY_DEV secret, an API key from a shared MCP team account,
 # used only by this check. The account must be entitled to Advanced Rules and
-# every guided test (the server hides parameters the account can't use). The
+# every guided test (the server hides parameters the account can't use), and its
+# Advanced Rules policy must not be fixed: a fixed policy overrides the check's
+# advancedRules: "disabled", so each run would consume AI credits. The
 # AXE_SERVER_URL repository variable overrides the environment. Scheduled
 # failures alert Slack through the SLACK_BOT_TOKEN secret; without it, they
 # go unnoticed.
+#
+# GitHub disables scheduled workflows in public repos after 60 days without
+# repository activity, and nothing alerts when it does. If the nightly runs
+# stop, re-enable this workflow from the Actions tab.
 
 on:
   schedule:
@@ -54,7 +60,9 @@ jobs:
 
   notify:
     needs: live-server
-    if: failure() && github.event_name == 'schedule'
+    # A job that hits timeout-minutes ends as cancelled, not failed, and
+    # cancelled() only reports whether the whole run was cancelled.
+    if: always() && github.event_name == 'schedule' && needs.live-server.result != 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Same message as axe-mcp-server's failure alerts. Their shared action lives
