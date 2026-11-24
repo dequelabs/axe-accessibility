@@ -2,10 +2,6 @@
 
 This repo is owned by Deque's MCP team. Before changing anything, read [AGENTS.md](AGENTS.md): it lists the rules the code doesn't show, such as which names customers depend on and why only release PRs change the plugin version.
 
-## Getting help
-
-Open a [GitHub issue](https://github.com/dequelabs/axe-accessibility/issues) to report a problem, propose a change, or ask the team a question. The MCP team responds within 2 days.
-
 ## Setup
 
 1. Install the Node version in [`.nvmrc`](.nvmrc) (for example `nvm install`), and use it in every new shell (for example `nvm use`).
@@ -38,7 +34,6 @@ Each convention links the file that enforces or shows it, where one exists:
 - **Workflow timeouts.** Every job in `.github/workflows/` sets `timeout-minutes`, enforced by [`scripts/check-workflow-timeouts.mjs`](scripts/check-workflow-timeouts.mjs).
 - **PR titles.** Conventional Commits, enforced by [`.github/workflows/semantic-pr-title.yml`](.github/workflows/semantic-pr-title.yml). Capitalize the first word after the prefix (`fix: Use the pinned Playwright version`); CI doesn't check that part.
 - **PR descriptions.** PRs are squash-merged with the title and description as the commit, so the description is the commit body. Describe what changes for users and why, without headings or checklists, and end with `Closes #N`. The [PR template](.github/pull_request_template.md) prompts for this.
-- **Branch names.** No type prefix: `token-refresh`, not `feat/token-refresh`. Nothing enforces this.
 - **Pinned versions.** Current pins are recognized by the patterns in [`scripts/check-versions.mjs`](scripts/check-versions.mjs). Historical references like "needs 1.5.0+" are never bumped.
 - **Skills.** Each skill is a directory with a `SKILL.md` whose frontmatter `name` is the name customers invoke, plus optional `references/`. See [`skills/mcp-setup/`](skills/mcp-setup/SKILL.md).
 
