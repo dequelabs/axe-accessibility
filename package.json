@@ -15,10 +15,11 @@
     "check:manifests": "claude plugin validate --strict .claude-plugin/plugin.json && claude plugin validate --strict .claude-plugin/marketplace.json",
     "check:links": "linkinator \"**/*.md\"",
     "check:workflow-timeouts": "node scripts/check-workflow-timeouts.mjs",
+    "check:versions": "node scripts/check-versions.mjs",
     "test": "node --test",
     "fmt": "prettier --write .",
     "prepare": "husky",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged && pnpm run check:versions --staged"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "2.1.323",
