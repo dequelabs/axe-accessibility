@@ -1,0 +1,33 @@
+{
+  "pageUrl": "http://localhost:3000/checkout",
+  "advancedRules": { "value": "disabled", "source": "org_default" },
+  "data": {
+    "axe": [],
+    "igt": {
+      "keyboard": {
+        "status": "complete",
+        "issues": [
+          {
+            "rule": "keyboard-inaccessible",
+            "help": "Element is not reachable with the keyboard",
+            "summary": "The promo code toggle responds to mouse clicks but cannot be reached with the Tab key.",
+            "source": "<div class=\"promo-toggle\" onclick=\"togglePromo()\">Have a promo code?</div>",
+            "selector": [".promo-toggle"],
+            "impact": "serious",
+            "manifestGuide": "keyboard",
+            "aiReasoning": "The element has a click handler but no tabindex or interactive role, so keyboard users cannot open the promo code field."
+          }
+        ],
+        "igtElements": [
+          { "vnodeId": "12", "selector": ["#email"], "tagName": "input" },
+          {
+            "vnodeId": "18",
+            "selector": [".cart-remove"],
+            "tagName": "button"
+          },
+          { "vnodeId": "25", "selector": ["#place-order"], "tagName": "button" }
+        ]
+      }
+    }
+  }
+}
