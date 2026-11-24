@@ -32,7 +32,11 @@ const SCANNED = new Set([".md", ".json", ".sh", ".yml", ".yaml"]);
 const PLUGIN = ".claude-plugin/plugin.json";
 const MARKETPLACE = ".claude-plugin/marketplace.json";
 
-const root = process.argv[2] ?? ".";
+const args = process.argv.slice(2);
+// The pre-commit hook passes --staged to check what would be committed, which
+// can differ from the working tree when a file is partially staged.
+const staged = args.includes("--staged");
+const root = args.find((arg) => arg !== "--staged") ?? ".";
 
 // Ask git rather than walking the tree, so gitignored local files (which CI's
 // checkout never has) can't fail the pre-commit hook.
@@ -45,8 +49,7 @@ function listFiles() {
       "ls-files",
       "-z",
       "--cached",
-      "--others",
-      "--exclude-standard",
+      ...(staged ? [] : ["--others", "--exclude-standard"]),
     ],
     { encoding: "utf8" },
   )
@@ -55,8 +58,16 @@ function listFiles() {
       (file) =>
         SCANNED.has(extname(file)) &&
         basename(file) !== "pnpm-lock.yaml" &&
-        existsSync(join(root, file)),
+        (staged || existsSync(join(root, file))),
     );
+}
+
+function read(file) {
+  return staged
+    ? execFileSync("git", ["-C", root, "show", `:${file}`], {
+        encoding: "utf8",
+      })
+    : readFileSync(join(root, file), "utf8");
 }
 
 function lineAt(text, index) {
@@ -66,10 +77,10 @@ function lineAt(text, index) {
 function collectPins() {
   const found = Object.fromEntries(Object.keys(PINS).map((pin) => [pin, []]));
   for (const file of listFiles().sort()) {
-    const text = readFileSync(join(root, file), "utf8");
+    const text = read(file);
     for (const [pin, patterns] of Object.entries(PINS)) {
       for (const pattern of patterns) {
-        for (const match of text.matchAll(new RegExp(pattern, "dg"))) {
+        for (const match of text.matchAll(new RegExp(pattern, "dgi"))) {
           found[pin].push({
             version: match[1],
             file,
@@ -87,8 +98,8 @@ function collectPins() {
 }
 
 function collectPluginVersions() {
-  const plugin = JSON.parse(readFileSync(join(root, PLUGIN), "utf8"));
-  const marketplace = JSON.parse(readFileSync(join(root, MARKETPLACE), "utf8"));
+  const plugin = JSON.parse(read(PLUGIN));
+  const marketplace = JSON.parse(read(MARKETPLACE));
   const entry = marketplace.plugins?.find((p) => p.name === plugin.name);
   const versions = [{ version: plugin.version, file: PLUGIN, text: "version" }];
   if (!entry || "version" in entry) {

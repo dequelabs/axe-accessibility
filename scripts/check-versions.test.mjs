@@ -32,7 +32,7 @@ function write(dir, files) {
 
 // Files are added to the index, as in a CI checkout; `untracked` files are
 // written afterwards, as new files are before a pre-commit run.
-function check(files, { untracked = {}, deleted = [] } = {}) {
+function check(files, { untracked = {}, deleted = [], staged = false } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "versions-"));
   try {
     spawnSync("git", ["init", "-q", dir]);
@@ -40,7 +40,8 @@ function check(files, { untracked = {}, deleted = [] } = {}) {
     spawnSync("git", ["-C", dir, "add", "-A"]);
     write(dir, untracked);
     for (const name of deleted) rmSync(join(dir, name));
-    return spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
+    const args = staged ? [script, "--staged", dir] : [script, dir];
+    return spawnSync(process.execPath, args, { encoding: "utf8" });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -209,6 +210,63 @@ test("fails when a pin is found fewer than twice, so a rewording can't disable i
     assert.match(result.stderr, new RegExp(`${pin}: found 0`));
   }
   assert.match(result.stderr, /PINS/);
+});
+
+test("fails when a pin is found only once", () => {
+  const result = check({
+    "README.md": "Run `npx -y axe-mcp-server@1.6.0`.",
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /axe-mcp-server: found 1/);
+});
+
+test("matches a pin phrasing at the start of a sentence", () => {
+  const result = check({
+    "README.md": readme,
+    "skills/setup/SKILL.md":
+      "Pinned to `1.7.0` for now. Documented against 1.7.0.",
+  });
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /1\.7\.0[\s\S]*skills\/setup\/SKILL\.md:1 {2}Pinned to 1\.7\.0/,
+  );
+  assert.match(
+    result.stderr,
+    /skills\/setup\/SKILL\.md:1 {2}Documented against 1\.7\.0/,
+  );
+});
+
+test("with --staged, checks what would be committed rather than the working tree", () => {
+  const result = check(
+    {
+      "README.md": readme,
+      "scripts/start.sh": startScript.replace(
+        "axe-mcp-server@1.6.0",
+        "axe-mcp-server@1.7.0",
+      ),
+    },
+    { untracked: { "scripts/start.sh": startScript }, staged: true },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /1\.7\.0\n\s+scripts\/start\.sh:3/);
+});
+
+test("with --staged, ignores files that are not staged", () => {
+  const result = check(
+    { "README.md": readme },
+    { untracked: { "notes.md": "npx -y axe-mcp-server@0.0.1" }, staged: true },
+  );
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("with --staged, still checks staged files deleted from the working tree", () => {
+  const result = check(
+    { "README.md": readme, "old.md": "npx -y axe-mcp-server@1.7.0" },
+    { deleted: ["old.md"], staged: true },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /old\.md:1/);
 });
 
 test("ignores files that are not md, json, sh, or yaml", () => {
