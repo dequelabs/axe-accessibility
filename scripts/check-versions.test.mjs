@@ -8,7 +8,11 @@ import { fileURLToPath } from "node:url";
 
 const script = fileURLToPath(new URL("./check-versions.mjs", import.meta.url));
 
-function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
+function manifests(
+  pluginVersion,
+  marketplaceVersion = pluginVersion,
+  ref = `v${pluginVersion}`,
+) {
   return {
     ".claude-plugin/plugin.json": JSON.stringify({
       name: "axe-accessibility",
@@ -17,7 +21,11 @@ function manifests(pluginVersion, marketplaceVersion = pluginVersion) {
     ".claude-plugin/marketplace.json": JSON.stringify({
       plugins: [
         { name: "something-else", version: "9.9.9" },
-        { name: "axe-accessibility", version: marketplaceVersion },
+        {
+          name: "axe-accessibility",
+          version: marketplaceVersion,
+          source: { source: "url", url: "https://example.test/x.git", ref },
+        },
       ],
     }),
   };
@@ -201,6 +209,15 @@ Docker users on \`:latest\` can sit behind the current release.
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("ignores CHANGELOG.md, which records past pins", () => {
+  const result = check({
+    "README.md": readme,
+    "CHANGELOG.md":
+      "# Changelog\n\n## [0.3.3](https://x.test) (2026-12-01)\n\n- Pin axe-mcp-server@1.5.0 ([abc](https://x.test))\n",
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("fails when a pin is found fewer than twice, so a rewording can't disable it", () => {
   const result = check({
     "README.md": "The server is pinned to a current release.",
@@ -338,8 +355,50 @@ test("passes when the marketplace entry leaves the version to plugin.json", () =
   const result = check({
     "README.md": readme,
     ".claude-plugin/marketplace.json": JSON.stringify({
-      plugins: [{ name: "axe-accessibility" }],
+      plugins: [
+        {
+          name: "axe-accessibility",
+          source: {
+            source: "url",
+            url: "https://example.test/x.git",
+            ref: "v0.3.2",
+          },
+        },
+      ],
     }),
   });
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("fails when the marketplace source ref is not the plugin.json version's tag", () => {
+  const result = check({
+    "README.md": readme,
+    ...manifests("0.4.0", "0.4.0", "v0.3.2"),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /0\.4\.0\s+\.claude-plugin\/plugin\.json/);
+  assert.match(
+    result.stderr,
+    /0\.3\.2\s+\.claude-plugin\/marketplace\.json\s+plugins\[name=axe-accessibility\]\.source\.ref/,
+  );
+});
+
+test("fails when the marketplace source ref has no v prefix", () => {
+  const result = check({
+    "README.md": readme,
+    ...manifests("0.3.2", "0.3.2", "0.3.2"),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /source\.ref/);
+});
+
+test("fails when the marketplace entry is not pinned to a ref", () => {
+  const result = check({
+    "README.md": readme,
+    ".claude-plugin/marketplace.json": JSON.stringify({
+      plugins: [{ name: "axe-accessibility", source: "./" }],
+    }),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /source\.ref/);
 });

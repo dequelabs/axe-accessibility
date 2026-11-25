@@ -22,5 +22,6 @@ rgaa
 shellcheck
 unentitled
 unsets
+versionrc
 vnode
 wcag

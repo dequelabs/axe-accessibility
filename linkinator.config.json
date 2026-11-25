@@ -7,6 +7,10 @@
   "retryErrors": true,
   "retryErrorsCount": 3,
   "retryErrorsJitter": 3000,
-  "skip": ["^http://localhost", "node_modules"],
+  "skip": [
+    "^http://localhost",
+    "node_modules",
+    "^https://github\\.com/dequelabs/axe-accessibility/compare/"
+  ],
   "verbosity": "error"
 }
