@@ -123,25 +123,15 @@ const unpinned = {
   }),
 };
 
-test("passes first pinning the marketplace entry to the current version's tag", () => {
+test("fails pinning an unpinned marketplace entry outside a release PR", () => {
   const result = check({
     base: unpinned,
     changes: manifests("0.3.2"),
-    branch: "release-flow",
-    title: "feat: Serve only releases",
-  });
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test("fails first pinning the marketplace entry to another version's tag", () => {
-  const result = check({
-    base: unpinned,
-    changes: manifests("0.3.2", "v0.3.1"),
-    branch: "release-flow",
-    title: "feat: Serve only releases",
+    branch: "pin-entry",
+    title: "fix: Serve only releases",
   });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /undefined -> v0\.3\.1/);
+  assert.match(result.stderr, /undefined -> v0\.3\.2/);
 });
 
 test("fails a change to the marketplace source's URL outside a release PR", () => {
