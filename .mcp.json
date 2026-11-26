@@ -2,8 +2,15 @@
   "mcpServers": {
     "axe-mcp-server": {
       "type": "stdio",
-      "command": "sh",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/start-axe-mcp-server.sh"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "@deque/axe-auth@1.10.0-rc.1d24c6e5",
+        "-p",
+        "axe-mcp-server@1.10.0-rc.1d24c6e5",
+        "axe-mcp-server"
+      ],
       "env": {
         "AXE_API_KEY": "${user_config.api_key}"
       }
