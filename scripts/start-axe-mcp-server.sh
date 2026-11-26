@@ -12,4 +12,4 @@ if [ -n "$token" ]; then
   export AXE_ACCESS_TOKEN
 fi
 
-exec npx -y axe-mcp-server@1.6.0
+exec npx -y axe-mcp-server@1.10.0-rc.1d24c6e5
