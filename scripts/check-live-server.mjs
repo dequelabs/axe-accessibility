@@ -428,6 +428,8 @@ function launchServer(apiKey) {
     }
     pending.clear();
   });
+  // A write after the server exits fails with EPIPE; the exit handler reports it.
+  child.stdin.on("error", () => {});
   const send = (message) =>
     child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   return {
