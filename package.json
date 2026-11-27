@@ -24,7 +24,7 @@
     "pre-commit": "lint-staged && pnpm run check:versions --staged"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "2.1.323",
+    "@anthropic-ai/claude-code": "2.1.329",
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^2.1.1",
     "@eslint/markdown": "^8.0.3",
