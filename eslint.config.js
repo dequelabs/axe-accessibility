@@ -26,6 +26,8 @@ module.exports = defineConfig([
       // Most fences hold pseudo-code, annotated JSON, or prompt text that no
       // single language tag describes.
       "markdown/fenced-code-language": "off",
+      // v9 dropped this from markdown/recommended (it is gfm-only now).
+      "markdown/table-column-count": "error",
     },
   },
 ]);
