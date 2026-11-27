@@ -238,6 +238,13 @@ case "$*" in
   *@deque/axe-auth@*) exit 1 ;;
 esac
 if [ -n "$STUB_EXIT" ]; then exit "$STUB_EXIT"; fi
+if [ -n "$STUB_CLOSE_STDIN" ]; then
+  read -r _
+  exec 0<&-
+  echo '{"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"version":"1.6.0"}}}'
+  sleep 0.2
+  exit 1
+fi
 exec node "$STUB_DIR/server.mjs"
 `;
 
@@ -655,6 +662,15 @@ test("says the check could not run when analyze returns text that isn't JSON", (
   assert.equal(result.status, 1);
   assert.match(result.stderr, /could not run/);
   assert.match(result.stderr, /Service unavailable/);
+  assert.doesNotMatch(result.stderr, /no longer match/);
+});
+
+test("says the check could not run when the server stops reading and exits", () => {
+  const result = check({
+    env: { AXE_API_KEY: "key-123", STUB_CLOSE_STDIN: "1" },
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /could not run/);
   assert.doesNotMatch(result.stderr, /no longer match/);
 });
 
